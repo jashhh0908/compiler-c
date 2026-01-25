@@ -1,15 +1,16 @@
 #include<stdio.h>
 #include "lexer.h"
 #include "parser.h"
+#include "ast.h"
 #include<stdlib.h>
 
-void parse_program();
-void parse_statement();
-void parse_assignment();
-void parse_print_smt();
-void parse_expression();
-void parse_term();
-void parse_factor();
+ASTNode* parse_program();
+ASTNode* parse_statement();
+ASTNode* parse_assignment();
+ASTNode* parse_print_smt();
+ASTNode* parse_expression();
+ASTNode* parse_term();
+ASTNode* parse_factor();
 
 Token current_token;
 static const char *token_name(TokenType type) {
@@ -47,60 +48,101 @@ void consume(TokenType expected) {
     }
 }
 
-void parse_factor() {
-    if(current_token.type == TOKEN_IDENTIFIER || current_token.type == TOKEN_NUMBER) {
+ASTNode* parse_factor() {
+    if(current_token.type == TOKEN_IDENTIFIER) {
+        char *name = current_token.lexeme;
         advance();
+        return make_identifier(name);
+
+    } else if(current_token.type == TOKEN_NUMBER){
+        int value = convert_lexeme(current_token.lexeme);
+        int x = value;
+        advance();
+        return make_number(x);
     } else if(current_token.type == TOKEN_LPAREN) {
         advance();
-        parse_expression();
+        ASTNode* exp = parse_expression();
         consume(TOKEN_RPAREN);
+        return exp;
     } else {
-        syntax_error(current_token.type, "INDENTIFIER OR NUMBER OR '('");
+        syntax_error(current_token.type, "IDENTIFIER or NUMBER or '('");
+        return NULL;
     }
 }
 
-void parse_term() {
-    parse_factor();
+ASTNode* parse_term() {
+    ASTNode *left = parse_factor();
     while(current_token.type == TOKEN_STAR || current_token.type == TOKEN_SLASH) {
+        char op;
+        if(current_token.type == TOKEN_STAR)
+            op = '*';
+        else if(current_token.type == TOKEN_SLASH)
+            op = '/';
+        
         advance();
-        parse_factor();
+        ASTNode* right = parse_factor();
+        left = make_binaryexp(op, left, right);
     }
+
+    return left;
 }
 
-void parse_expression() {
-    parse_term();
+ASTNode* parse_expression() {
+    ASTNode *left = parse_term();
     while(current_token.type == TOKEN_PLUS || current_token.type == TOKEN_MINUS) {
+        char op;
+        if(current_token.type == TOKEN_PLUS)
+            op = '+';
+        else if(current_token.type == TOKEN_MINUS)
+            op = '-';
+        
         advance();
-        parse_term();
+        ASTNode* right = parse_term();
+        left = make_binaryexp(op, left, right);
     }
+    return left;
 }
 
-void parse_statement() {
+ASTNode* parse_statement() {
     if(current_token.type == TOKEN_PRINT) {
-        parse_print_smt();    
+        return parse_print_smt();    
     } else if(current_token.type == TOKEN_IDENTIFIER) {
-        parse_assignment();
+        return parse_assignment();
     } else {
         syntax_error(current_token.type, "statement (print or assignment)");
+        return NULL;
     }
 }
 
-void parse_print_smt() {
+ASTNode* parse_print_smt() {
     consume(TOKEN_PRINT);
-    parse_expression();
+    ASTNode *exp = parse_expression();
     consume(TOKEN_SEMICOLON);
+
+    return make_print_smt(exp);
 }
 
-void parse_assignment() {
+ASTNode* parse_assignment() {
+    char *name = current_token.lexeme;
     consume(TOKEN_IDENTIFIER);
     consume(TOKEN_ASSIGN);
-    parse_expression();
+    ASTNode* exp = parse_expression();
     consume(TOKEN_SEMICOLON);
+
+    return make_assignment(name, exp);
 }
 
-void parse_program() {
+ASTNode* parse_program() {
+    ASTProgram* node = malloc(sizeof(ASTProgram));
+    node->type = AST_PROGRAM;
+    node->statements = NULL;
+    node->smt_count = 0;
     advance();
     while(current_token.type != TOKEN_EOF) {
-        parse_statement();
+        ASTNode* statement = parse_statement();
+        node->statements = realloc(node->statements, sizeof(ASTNode*) * (node->smt_count + 1));
+        node->statements[node->smt_count] = statement;
+        node->smt_count++;
     }
+    return (ASTNode*)node;
 }
