@@ -27,4 +27,5 @@ typedef struct {
 
 void init_lexer(const char *source);
 Token get_token(void);
+int convert_lexeme(const char *str);
 #endif

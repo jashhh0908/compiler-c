@@ -74,6 +74,23 @@ static Token get_number() {
     return token;
 }
 
+int convert_lexeme(const char *str) {
+    int res = 0;
+    int sign = 1;
+    while(*str == ' ' || *str == '\n' || *str == '\t') {
+        str++;
+    }
+    if(*str == '-') {
+        sign = -1;
+        str++;
+    }
+    while(*str >= '0' && *str <= '9') {
+        res = res * 10 + (*str - '0');
+        str++;
+    }
+    return res * sign;
+}
+
 Token get_token() {
     skip_whitespace();
     Token token;
