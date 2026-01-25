@@ -1,0 +1,7 @@
+program      = { statement } ;
+statement    = assignment | print_stmt ;
+assignment   = identifier "=" expression ";" ;
+print_stmt   = "print" expression ";" ;
+expression   = term { ("+" | "-") term } ;
+term         = factor { ("*" | "/") factor } ;
+factor       = identifier | number | "(" expression ")" ;

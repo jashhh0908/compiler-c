@@ -1,0 +1,109 @@
+#include<stdio.h>
+#include "lexer.h"
+#include<ctype.h>
+#include<string.h>
+#include<stdlib.h>
+
+static const char *source;
+static int position;
+
+void init_lexer(const char *src) {
+    source = src;
+    position = 0;
+}
+static char peek() {
+    return source[position];
+}
+
+static char advance() {
+    return source[position++];
+}
+
+static void skip_whitespace() {
+    while(isspace(peek())) {
+        advance();
+    }
+}
+
+static int end_reached() {
+    return source[position] == '\0';
+}
+
+static Token get_identifier() {
+    int start = position;
+    while(isalnum(peek())) {
+        advance();
+    }
+
+    int length = position - start;
+    char *text = malloc(length + 1);
+    for(int i = 0; i < length; i++) {
+        text[i] = source[start + i];
+    }
+
+    text[length] = '\0';
+    Token token;
+    token.lexeme = text;
+    if(strcmp(text, "print") == 0) {
+        token.type = TOKEN_PRINT;
+    } else {
+        token.type = TOKEN_IDENTIFIER;
+    }
+
+    return token;
+}
+
+static Token get_number() {
+    int start = position;
+    while(isdigit(peek())) {
+        advance();
+    }
+
+    int length = position - start;
+    char *text = malloc(length + 1);
+
+    for(int i = 0; i < length; i++) {
+        text[i] = source[start + i];
+    }
+
+    text[length] = '\0';
+    Token token;
+    token.type = TOKEN_NUMBER;
+    token.lexeme = text;
+
+    return token;
+}
+
+Token get_token() {
+    skip_whitespace();
+    Token token;
+    if(end_reached()) {
+        token.type = TOKEN_EOF;
+        token.lexeme = NULL;
+        return token;
+    }
+    if(isalpha(peek())) {
+        return get_identifier();
+    }
+    if(isdigit(peek())) {
+        return get_number();
+    }
+    char c = advance();
+    token.lexeme = NULL;
+    switch(c) {
+        case '+': token.type = TOKEN_PLUS; break;
+        case '-': token.type = TOKEN_MINUS; break;
+        case '*': token.type = TOKEN_STAR; break;
+        case '/': token.type = TOKEN_SLASH; break;
+        case '(': token.type = TOKEN_LPAREN; break;
+        case ')': token.type = TOKEN_RPAREN; break;
+        case '=': token.type = TOKEN_ASSIGN; break;
+        case ';': token.type = TOKEN_SEMICOLON; break;
+        default: 
+            printf("Lexer error: Unexpected character %c\n", c);
+            exit(1);
+    }
+
+    return token;
+}
+
