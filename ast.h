@@ -53,4 +53,7 @@ ASTNode* make_identifier(char *name);
 ASTNode* make_binaryexp(char op, ASTNode* left, ASTNode* right);
 ASTNode* make_print_smt(ASTNode* exp);
 ASTNode* make_assignment(char *name, ASTNode* exp);
+
+//for testing purpose
+void print_ast(ASTNode* node, int level);
 #endif

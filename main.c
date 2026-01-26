@@ -26,7 +26,9 @@ int main(void) {
 
     init_lexer(test);
     ASTNode* success = parse_program();
-    if(success != NULL)
-        printf("Parsed successfully!");
+    if(success != NULL) {
+        printf("Parsed successfully!\n");
+        print_ast(success, 0);
+    }
     return 0;
 }

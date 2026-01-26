@@ -146,3 +146,60 @@ ASTNode* parse_program() {
     }
     return (ASTNode*)node;
 }
+
+//for testing purpose
+void print_ast (ASTNode *node, int level) {
+    if(node == NULL) return;
+
+    for(int i = 0; i < level; i++) {
+        printf(" ");
+    }
+
+    switch(node->type) {
+        case AST_PROGRAM: { 
+            
+            ASTProgram *p = (ASTProgram*)node;
+            printf("Program (Statements = %d)\n", p->smt_count);
+            
+            for(int i = 0; i < p->smt_count; i++) {
+                print_ast(p->statements[i], level + 1);
+            }
+            break;
+        }
+
+        case AST_ASSIGNMENT: {
+            ASTAssignment *assign = (ASTAssignment*)node;
+            printf("ASSIGN TO: %s\n", assign->name);
+            print_ast(assign->exp, level + 1);
+            break;
+        }
+
+        case AST_PRINT: {
+            ASTPrint *p = (ASTPrint*)node;
+            printf("PRINT\n");
+            print_ast(p->exp, level + 1);
+            break;
+        }
+        
+        case AST_BINARYEXP: {
+            ASTBinaryExp *bexp = (ASTBinaryExp*)node;
+            printf("Operation: %c\n", bexp->op);
+            print_ast(bexp->left, level + 1);
+            print_ast(bexp->right, level + 1);
+            break;
+        }
+
+        case AST_IDENTIFIER: {
+            ASTIdentifier *id = (ASTIdentifier*)node;
+            printf("VAR: %s\n", id->name);
+            break;
+        }
+
+        case AST_NUMBER: {
+            ASTNumber *num = (ASTNumber*)node;
+            printf("Value: %d\n", num->value);
+            break;
+        }
+        default: printf("Unknown Node\n");
+    }
+}
