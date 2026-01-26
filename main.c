@@ -3,6 +3,7 @@
 #include "lexer.h"
 #include "parser.h"
 #include "ast.h"
+#include "evaluator.h"
 
 char *read_file() {
     FILE* file = fopen("tests/input.txt", "rb");
@@ -28,7 +29,7 @@ int main(void) {
     ASTNode* success = parse_program();
     if(success != NULL) {
         printf("Parsed successfully!\n");
-        print_ast(success, 0);
+        evaluate_program(success);
     }
     return 0;
 }
