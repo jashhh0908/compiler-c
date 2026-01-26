@@ -116,6 +116,14 @@ ASTNode* parse_statement() {
 
 ASTNode* parse_print_smt() {
     consume(TOKEN_PRINT);
+    if(current_token.type == TOKEN_STRING) {
+        char *str = current_token.lexeme;
+        consume(TOKEN_STRING);
+        consume(TOKEN_SEMICOLON);
+        ASTNode* s = make_string(str);
+        return make_print_smt(s);
+    }
+    
     ASTNode *exp = parse_expression();
     consume(TOKEN_SEMICOLON);
 
@@ -198,6 +206,12 @@ void print_ast (ASTNode *node, int level) {
         case AST_NUMBER: {
             ASTNumber *num = (ASTNumber*)node;
             printf("Value: %d\n", num->value);
+            break;
+        }
+
+        case AST_STRING: {
+            ASTString *s = (ASTString*)node;
+            printf("STRING: %s\n", s->str);
             break;
         }
         default: printf("Unknown Node\n");

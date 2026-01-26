@@ -50,8 +50,13 @@ static void evaluate_statement(ASTNode* smt, SymbolTable* table) {
 
         case AST_PRINT: {
             ASTPrint *print = (ASTPrint*)smt;
-            int x = evaluate_expression(print->exp, table);
-            printf("%d\n", x);
+            if(print->exp->type == AST_STRING) {
+                ASTString *s = (ASTString*)print->exp; //print->exp holds the actual string data
+                printf("%s\n", s->str);
+            } else {
+                int x = evaluate_expression(print->exp, table);
+                printf("%d\n", x);
+            }
             break;
         }
         default: printf("Unknown Node\n"); exit(1);

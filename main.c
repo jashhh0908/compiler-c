@@ -6,7 +6,7 @@
 #include "evaluator.h"
 
 char *read_file() {
-    FILE* file = fopen("tests/t3.txt", "rb");
+    FILE* file = fopen("tests/input.txt", "rb");
     if(!file) {
         printf("Could not open\n");
         return NULL;
@@ -29,6 +29,7 @@ int main(void) {
     ASTNode* success = parse_program();
     if(success != NULL) {
         printf("Parsed successfully!\n");
+        print_ast(success, 0);
         evaluate_program(success);
     }
     return 0;

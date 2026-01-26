@@ -5,6 +5,7 @@ typedef enum {
     AST_PROGRAM,
     AST_ASSIGNMENT,
     AST_PRINT,
+    AST_STRING,
     AST_BINARYEXP,
     AST_IDENTIFIER,
     AST_NUMBER,    
@@ -33,6 +34,11 @@ typedef struct {
 
 typedef struct {
     ASTNodeType type;
+    char *str;
+} ASTString; 
+
+typedef struct {
+    ASTNodeType type;
     char op;
     ASTNode *left;
     ASTNode *right;
@@ -53,7 +59,7 @@ ASTNode* make_identifier(char *name);
 ASTNode* make_binaryexp(char op, ASTNode* left, ASTNode* right);
 ASTNode* make_print_smt(ASTNode* exp);
 ASTNode* make_assignment(char *name, ASTNode* exp);
-
+ASTNode* make_string(char *str);
 //for testing purpose
 void print_ast(ASTNode* node, int level);
 #endif

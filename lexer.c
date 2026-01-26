@@ -74,6 +74,24 @@ static Token get_number() {
     return token;
 }
 
+static char *get_string() {
+    int start = position;
+    advance();
+    while(peek() != '"' && !end_reached()) {
+        advance();
+    }
+
+    int length = position - start;
+    char *str = malloc(length + 1);
+    
+    for(int i = 0; i < length; i++) {
+        str[i] = source[start + i];
+    }
+
+    str[length] = '\0';
+    if(peek() == '"') advance();
+    return str;
+}
 int convert_lexeme(const char *str) {
     int res = 0;
     int sign = 1;
@@ -116,6 +134,11 @@ Token get_token() {
         case ')': token.type = TOKEN_RPAREN; break;
         case '=': token.type = TOKEN_ASSIGN; break;
         case ';': token.type = TOKEN_SEMICOLON; break;
+        case '"': { 
+            token.type = TOKEN_STRING; 
+            token.lexeme = get_string();
+            break; 
+        }
         default: 
             printf("Lexer error: Unexpected character %c\n", c);
             exit(1);

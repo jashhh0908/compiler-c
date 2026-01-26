@@ -14,6 +14,7 @@ typedef enum {
     TOKEN_SLASH,
 
     TOKEN_PRINT,
+    TOKEN_STRING,
 
     TOKEN_SEMICOLON,
     TOKEN_LPAREN,

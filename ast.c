@@ -51,3 +51,13 @@ ASTNode* make_assignment(char *name, ASTNode* exp) {
 
     return (ASTNode*)node;
 }
+
+ASTNode* make_string(char *str) {
+    ASTString *node = malloc(sizeof(ASTString));
+
+    node->type = AST_STRING;
+    node->str = malloc(strlen(str) + 1);
+    strcpy(node->str, str);
+
+    return (ASTNode*)node;
+}
