@@ -29,8 +29,9 @@ int main(void) {
     ASTNode* success = parse_program();
     if(success != NULL) {
         printf("Parsed successfully!\n");
-        print_ast(success, 0);
+        ///print_ast(success, 0);
         evaluate_program(success);
+        printf("Alloc count: %d", lexer_alloc_count());
     }
     return 0;
 }

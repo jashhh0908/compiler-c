@@ -52,13 +52,15 @@ ASTNode* parse_factor() {
     if(current_token.type == TOKEN_IDENTIFIER) {
         char *name = current_token.lexeme;
         advance();
-        return make_identifier(name);
-
+        ASTNode *node =  make_identifier(name);
+        free_lexeme(name); //
+        return node;
     } else if(current_token.type == TOKEN_NUMBER){
-        int value = convert_lexeme(current_token.lexeme);
-        int x = value;
+        char *lex = current_token.lexeme;
+        int value = convert_lexeme(lex);
         advance();
-        return make_number(x);
+        free_lexeme(lex);
+        return make_number(value);
     } else if(current_token.type == TOKEN_LPAREN) {
         advance();
         ASTNode* exp = parse_expression();
@@ -115,12 +117,15 @@ ASTNode* parse_statement() {
 }
 
 ASTNode* parse_print_smt() {
+    char *print_lexeme = current_token.lexeme;
     consume(TOKEN_PRINT);
+    free_lexeme(print_lexeme);
     if(current_token.type == TOKEN_STRING) {
         char *str = current_token.lexeme;
         consume(TOKEN_STRING);
         consume(TOKEN_SEMICOLON);
         ASTNode* s = make_string(str);
+        free_lexeme(str);
         return make_print_smt(s);
     }
     
@@ -134,10 +139,13 @@ ASTNode* parse_assignment() {
     char *name = current_token.lexeme;
     consume(TOKEN_IDENTIFIER);
     consume(TOKEN_ASSIGN);
+    
     ASTNode* exp = parse_expression();
     consume(TOKEN_SEMICOLON);
-
-    return make_assignment(name, exp);
+    
+    ASTNode *node = make_assignment(name, exp);
+    free_lexeme(name);
+    return node;
 }
 
 ASTNode* parse_program() {
