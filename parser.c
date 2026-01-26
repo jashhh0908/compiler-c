@@ -53,19 +53,23 @@ ASTNode* parse_factor() {
         char *name = current_token.lexeme;
         advance();
         ASTNode *node =  make_identifier(name);
-        free_lexeme(name); //
+        free(name); //
         return node;
     } else if(current_token.type == TOKEN_NUMBER){
         char *lex = current_token.lexeme;
         int value = convert_lexeme(lex);
         advance();
-        free_lexeme(lex);
+        free(lex);
         return make_number(value);
     } else if(current_token.type == TOKEN_LPAREN) {
         advance();
         ASTNode* exp = parse_expression();
         consume(TOKEN_RPAREN);
         return exp;
+    } else if (current_token.type == TOKEN_STRING) {
+        ASTNode* str = make_string(current_token.lexeme);
+        advance();
+        return str;
     } else {
         syntax_error(current_token.type, "IDENTIFIER or NUMBER or '('");
         return NULL;
@@ -105,27 +109,16 @@ ASTNode* parse_expression() {
     return left;
 }
 
-ASTNode* parse_statement() {
-    if(current_token.type == TOKEN_PRINT) {
-        return parse_print_smt();    
-    } else if(current_token.type == TOKEN_IDENTIFIER) {
-        return parse_assignment();
-    } else {
-        syntax_error(current_token.type, "statement (print or assignment)");
-        return NULL;
-    }
-}
-
 ASTNode* parse_print_smt() {
     char *print_lexeme = current_token.lexeme;
     consume(TOKEN_PRINT);
-    free_lexeme(print_lexeme);
+    free(print_lexeme);
     if(current_token.type == TOKEN_STRING) {
         char *str = current_token.lexeme;
         consume(TOKEN_STRING);
         consume(TOKEN_SEMICOLON);
         ASTNode* s = make_string(str);
-        free_lexeme(str);
+        free(str);
         return make_print_smt(s);
     }
     
@@ -144,8 +137,19 @@ ASTNode* parse_assignment() {
     consume(TOKEN_SEMICOLON);
     
     ASTNode *node = make_assignment(name, exp);
-    free_lexeme(name);
+    free(name);
     return node;
+}
+
+ASTNode* parse_statement() {
+    if(current_token.type == TOKEN_PRINT) {
+        return parse_print_smt();    
+    } else if(current_token.type == TOKEN_IDENTIFIER) {
+        return parse_assignment();
+    } else {
+        syntax_error(current_token.type, "statement (print or assignment)");
+        return NULL;
+    }
 }
 
 ASTNode* parse_program() {

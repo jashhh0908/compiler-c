@@ -1,6 +1,6 @@
 program      = { statement } ;
 statement    = assignment | print_stmt ;
-assignment   = identifier "=" expression ";" ;
+assignment   = identifier "=" (expression | string) ";" ;
 print_stmt   = "print" (expression | string) ";" ;
 expression   = term { ("+" | "-") term } ;
 term         = factor { ("*" | "/") factor } ;
