@@ -4,4 +4,4 @@ assignment   = identifier "=" (expression | string) ";" ;
 print_stmt   = "print" (expression | string) ";" ;
 expression   = term { ("+" | "-") term } ;
 term         = factor { ("*" | "/") factor } ;
-factor       = identifier | number | "(" expression ")" ;
+factor       = identifier | number | string | "(" expression ")" ;

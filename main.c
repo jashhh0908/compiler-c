@@ -6,7 +6,7 @@
 #include "evaluator.h"
 
 char *read_file() {
-    FILE* file = fopen("tests/input.txt", "rb");
+    FILE* file = fopen("tests/string_concat.txt", "rb");
     if(!file) {
         printf("Could not open\n");
         return NULL;

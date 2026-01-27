@@ -1,10 +1,18 @@
 #include<stdio.h>
 #include<stdlib.h>
+#include<string.h>
 #include "ast.h"
 #include "evaluator.h"
 #include "symbol_table.h"
 #include "value.h"
 
+char *valueTypeName(ValueType v) {
+    switch(v) {
+        case VALUE_INT: return "int";
+        case VALUE_STRING: return "string";
+        default: return "unknown";
+    }
+}
 static Value evaluate_expression(ASTNode* exp, SymbolTable* table) {
     switch(exp->type) {
         case AST_NUMBER: {
@@ -26,27 +34,42 @@ static Value evaluate_expression(ASTNode* exp, SymbolTable* table) {
             Value left = evaluate_expression(bexp->left, table);
             Value right = evaluate_expression(bexp->right, table);
 
-            if(left.type != VALUE_INT || right.type != VALUE_INT) {
-                printf("Error: arithmetic operations require int values\n");
-                exit(1);
+            if(left.type == VALUE_INT && right.type == VALUE_INT) {
+                int result;
+                switch(bexp->op) {
+                    case '+': result = left.val + right.val; break;
+                    case '-': result = left.val - right.val; break;
+                    case '*': result = left.val * right.val; break;
+                    case '/': 
+                        if(right.val == 0) {
+                            printf("Error: Division by zero is not possible\n");
+                            exit(1);
+                        }
+                        result = left.val / right.val;
+                        break;
+                    default: printf("Error: Unknown operator\n"); exit(1);
+                }
+                free_value(&left);
+                free_value(&right);
+                return value_int(result);
             }
-            int result;
-            switch(bexp->op) {
-                case '+': result = left.val + right.val; break;
-                case '-': result = left.val - right.val; break;
-                case '*': result = left.val * right.val; break;
-                case '/': 
-                    if(right.val == 0) {
-                        printf("Error: Division by zero is not possible\n");
-                        exit(1);
-                    }
-                    result = left.val / right.val;
-                    break;
-                default: printf("Error: Unknown operator\n"); exit(1);
+
+            if(left.type == VALUE_STRING && right.type == VALUE_STRING && bexp->op == '+') {
+                size_t length = strlen(left.str) + strlen(right.str) + 1;
+                char *concat_str = malloc(length);
+                strcpy(concat_str, left.str);
+                strcat(concat_str, right.str);
+
+                free_value(&left);
+                free_value(&right);
+                Value v = value_string(concat_str);
+                free(concat_str);
+                return v;
             }
+            printf("Runtime Error: cannot apply operator (%c) to types (%s, %s)\n", bexp->op, valueTypeName(left.type), valueTypeName(right.type));
             free_value(&left);
             free_value(&right);
-            return value_int(result);
+            exit(1);
         }
         default: printf("Error: Unknown Node Type for evaluation\n"); exit(1);
     }
@@ -64,24 +87,18 @@ static void evaluate_statement(ASTNode* smt, SymbolTable* table) {
 
         case AST_PRINT: {
             ASTPrint *print = (ASTPrint*)smt;
-            if(print->exp->type == AST_STRING) {
-                ASTString *s = (ASTString*)print->exp; //print->exp holds the actual string data
-                printf("%s\n", s->str);
-            } else {
-                Value x = evaluate_expression(print->exp, table);
-                if(x.type == VALUE_STRING) {
-                    printf("%s\n", x.str);
-                } else if(x.type == VALUE_INT) {
-                    printf("%d\n", x.val);
-                }
-                free_value(&x);
+            Value x = evaluate_expression(print->exp, table);
+            if(x.type == VALUE_STRING) {
+                printf("%s\n", x.str);
+            } else if(x.type == VALUE_INT) {
+                printf("%d\n", x.val);
             }
+            free_value(&x);
             break;
         }
         default: printf("Unknown Node\n"); exit(1);
     }
 }
-
 
 void evaluate_program(ASTNode *program_root) {
     SymbolTable *table = symbolTable_create();

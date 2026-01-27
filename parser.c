@@ -113,14 +113,6 @@ ASTNode* parse_print_smt() {
     char *print_lexeme = current_token.lexeme;
     consume(TOKEN_PRINT);
     free(print_lexeme);
-    if(current_token.type == TOKEN_STRING) {
-        char *str = current_token.lexeme;
-        consume(TOKEN_STRING);
-        consume(TOKEN_SEMICOLON);
-        ASTNode* s = make_string(str);
-        free(str);
-        return make_print_smt(s);
-    }
     
     ASTNode *exp = parse_expression();
     consume(TOKEN_SEMICOLON);
