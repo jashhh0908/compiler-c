@@ -76,11 +76,19 @@ static Token get_number() {
 
 static char *get_string() {
     int start = position;
-    advance();
-    while(peek() != '"' && !end_reached()) {
+    while(peek() != '"' && !end_reached() && peek() != '\n') {
         advance();
     }
 
+    if(peek() == '\n') {
+        printf("Syntax Error: unterminated string literal due to newline");
+        exit(1);
+    }
+    
+    if(end_reached()) {
+        printf("Syntax Error: end reached due to unterminated string literal");
+        exit(1);
+    }
     int length = position - start;
     char *str = malloc(length + 1);
     
