@@ -27,6 +27,8 @@ static const char *token_name(TokenType type) {
         case TOKEN_SEMICOLON: return "SEMICOLON";
         case TOKEN_LPAREN: return "LPAREN";
         case TOKEN_RPAREN: return "RPAREN";
+        case TOKEN_TRUE: return "TRUE";
+        case TOKEN_FALSE: return "FALSE";
         default: return "UNKNOWN";
     }
 }
@@ -70,6 +72,12 @@ ASTNode* parse_factor() {
         ASTNode* str = make_string(current_token.lexeme);
         advance();
         return str;
+    } else if(current_token.type == TOKEN_TRUE) {
+        advance();
+        return make_bool(1);
+    } else if(current_token.type == TOKEN_FALSE) {
+        advance();
+        return make_bool(0);
     } else {
         syntax_error(current_token.type, "IDENTIFIER or NUMBER or '('");
         return NULL;
@@ -216,6 +224,12 @@ void print_ast (ASTNode *node, int level) {
         case AST_STRING: {
             ASTString *s = (ASTString*)node;
             printf("STRING: %s\n", s->str);
+            break;
+        }
+        
+        case AST_BOOL: {
+            ASTBool *b = (ASTBool*)node;
+            printf("BOOL VALUE: %d\n", b->bool_value);
             break;
         }
         default: printf("Unknown Node\n");

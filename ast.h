@@ -8,7 +8,8 @@ typedef enum {
     AST_STRING,
     AST_BINARYEXP,
     AST_IDENTIFIER,
-    AST_NUMBER,    
+    AST_NUMBER,  
+    AST_BOOL,  
 } ASTNodeType;
 
 typedef struct {
@@ -54,12 +55,19 @@ typedef struct {
     int value;
 } ASTNumber;
 
+typedef struct {
+    ASTNodeType type;
+    int bool_value;
+} ASTBool;
+
 ASTNode* make_number(int x);
 ASTNode* make_identifier(char *name);
 ASTNode* make_binaryexp(char op, ASTNode* left, ASTNode* right);
 ASTNode* make_print_smt(ASTNode* exp);
 ASTNode* make_assignment(char *name, ASTNode* exp);
 ASTNode* make_string(char *str);
+ASTNode* make_bool(int x);
+
 //for testing purpose
 void print_ast(ASTNode* node, int level);
 #endif

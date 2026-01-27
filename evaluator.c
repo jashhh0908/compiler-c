@@ -10,6 +10,7 @@ char *valueTypeName(ValueType v) {
     switch(v) {
         case VALUE_INT: return "int";
         case VALUE_STRING: return "string";
+        case VALUE_BOOL: return "boolean";
         default: return "unknown";
     }
 }
@@ -29,6 +30,7 @@ static Value evaluate_expression(ASTNode* exp, SymbolTable* table) {
             ASTString *s = (ASTString*)exp;
             return value_string(s->str);
         }
+
         case AST_BINARYEXP: {
             ASTBinaryExp *bexp = (ASTBinaryExp*)exp;
             Value left = evaluate_expression(bexp->left, table);
@@ -71,6 +73,12 @@ static Value evaluate_expression(ASTNode* exp, SymbolTable* table) {
             free_value(&right);
             exit(1);
         }
+
+        case AST_BOOL: {
+            ASTBool *b = (ASTBool*)exp;
+            return value_bool(b->bool_value);
+        }
+
         default: printf("Error: Unknown Node Type for evaluation\n"); exit(1);
     }
 }
@@ -92,6 +100,8 @@ static void evaluate_statement(ASTNode* smt, SymbolTable* table) {
                 printf("%s\n", x.str);
             } else if(x.type == VALUE_INT) {
                 printf("%d\n", x.val);
+            } else if(x.type == VALUE_BOOL) {
+                printf("%s\n", x.bool_val ? "true" : "false");
             }
             free_value(&x);
             break;

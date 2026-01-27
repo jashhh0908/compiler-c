@@ -1,9 +1,9 @@
 #ifndef VALUE_H
 #define VALUE_H
-
 typedef enum {
     VALUE_INT,
-    VALUE_STRING
+    VALUE_STRING,
+    VALUE_BOOL
 } ValueType;
 
 typedef struct {
@@ -11,11 +11,13 @@ typedef struct {
     union {
         int val;
         char *str;
+        int bool_val;
     };
 } Value;
 
 Value value_int(int x);
 Value value_string(const char *str);
+Value value_bool(int b);
 Value value_copy(const Value *v);
 void free_value(Value *v);
 

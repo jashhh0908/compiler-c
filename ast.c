@@ -61,3 +61,12 @@ ASTNode* make_string(char *str) {
 
     return (ASTNode*)node;
 }
+
+ASTNode* make_bool(int x) {
+    ASTBool *node = malloc(sizeof(ASTBool));
+
+    node->type = AST_BOOL;
+    node->bool_value = x ? 1 : 0;
+
+    return (ASTNode*)node;
+}

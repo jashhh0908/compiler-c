@@ -46,10 +46,13 @@ static Token get_identifier() {
     token.lexeme = text;
     if(strcmp(text, "print") == 0) {
         token.type = TOKEN_PRINT;
+    } else if(strcmp(text, "true") == 0) {
+        token.type = TOKEN_TRUE;
+    } else if(strcmp(text, "false") == 0) {
+        token.type = TOKEN_FALSE;
     } else {
         token.type = TOKEN_IDENTIFIER;
     }
-
     return token;
 }
 
