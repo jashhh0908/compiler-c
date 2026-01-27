@@ -14,6 +14,7 @@ typedef enum {
     TOKEN_SLASH,
 
     TOKEN_PRINT,
+    TOKEN_IF,
     TOKEN_TRUE,
     TOKEN_FALSE,
     TOKEN_STRING,
@@ -21,6 +22,8 @@ typedef enum {
     TOKEN_SEMICOLON,
     TOKEN_LPAREN,
     TOKEN_RPAREN,
+    TOKEN_LBRACE,
+    TOKEN_RBRACE,
 } TokenType;
 
 typedef struct {

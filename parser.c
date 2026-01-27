@@ -128,6 +128,31 @@ ASTNode* parse_print_smt() {
     return make_print_smt(exp);
 }
 
+ASTNode* parse_if_smt() {
+    char *if_lexeme = current_token.lexeme;
+    consume(TOKEN_IF);
+    free(if_lexeme);
+
+    consume(TOKEN_LPAREN);
+    ASTNode* exp = parse_expression();
+    consume(TOKEN_RPAREN);
+    consume(TOKEN_LBRACE);
+
+    ASTIf *node = malloc(sizeof(ASTIf));
+    node->type = AST_IF;
+    node->condition = exp;
+    node->if_statements = NULL;
+    node->if_stmt_count = 0;
+    while(current_token.type != TOKEN_RBRACE) {
+        ASTNode* statement = parse_statement();
+        node->if_statements = realloc(node->if_statements, sizeof(ASTNode*) * (node->if_stmt_count + 1));
+        node->if_statements[node->if_stmt_count] = statement;
+        node->if_stmt_count++;
+    }
+    consume(TOKEN_RBRACE);
+    return (ASTNode*)node;
+}
+
 ASTNode* parse_assignment() {
     char *name = current_token.lexeme;
     consume(TOKEN_IDENTIFIER);
@@ -146,8 +171,10 @@ ASTNode* parse_statement() {
         return parse_print_smt();    
     } else if(current_token.type == TOKEN_IDENTIFIER) {
         return parse_assignment();
+    } else if(current_token.type == TOKEN_IF) {
+        return parse_if_smt();
     } else {
-        syntax_error(current_token.type, "statement (print or assignment)");
+        syntax_error(current_token.type, "statement (print or assignment or if)");
         return NULL;
     }
 }
@@ -231,6 +258,15 @@ void print_ast (ASTNode *node, int level) {
             ASTBool *b = (ASTBool*)node;
             printf("BOOL VALUE: %d\n", b->bool_value);
             break;
+        }
+
+        case AST_IF: {
+            ASTIf *_if = (ASTIf*)node;  
+            printf("IF (Statements = %d)\n", _if->if_stmt_count);
+            for(int i = 0; i < _if->if_stmt_count; i++) {
+                print_ast(_if->if_statements[i], level + 1);
+            }
+            break;          
         }
         default: printf("Unknown Node\n");
     }

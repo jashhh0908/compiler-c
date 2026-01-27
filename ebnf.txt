@@ -1,7 +1,10 @@
 program      = { statement } ;
-statement    = assignment | print_stmt ;
-assignment   = identifier "=" (expression | string) ";" ;
+statement    = assignment | print_stmt | if_stmt ;
+assignment   = identifier "=" (expression | string | boolean) ";" ;
 print_stmt   = "print" (expression | string) ";" ;
+if_stmt      = "if" "(" expression ")"  block ;
+block        = "{" { statement } "}" ; 
 expression   = term { ("+" | "-") term } ;
 term         = factor { ("*" | "/") factor } ;
-factor       = identifier | number | string | "(" expression ")" ;
+factor       = identifier | number | string | boolean | "(" expression ")" ;
+boolean      = "true" | "false" ;

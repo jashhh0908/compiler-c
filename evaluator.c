@@ -106,6 +106,26 @@ static void evaluate_statement(ASTNode* smt, SymbolTable* table) {
             free_value(&x);
             break;
         }
+
+        case AST_IF: {
+            ASTIf *_if = (ASTIf*)smt;
+            Value condition = evaluate_expression(_if->condition, table);
+            if(condition.type != VALUE_BOOL) {
+                printf("Runtime Error: condition expression must return a boolean value\n");
+                free_value(&condition);
+                exit(1);
+            }
+
+            if(condition.bool_val) {
+                for(int i = 0; i < _if->if_stmt_count; i++) {
+                    evaluate_statement(_if->if_statements[i], table);
+                }
+            }
+            
+            free_value(&condition);
+            break;
+        }
+
         default: printf("Unknown Node\n"); exit(1);
     }
 }

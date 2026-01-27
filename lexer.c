@@ -50,6 +50,8 @@ static Token get_identifier() {
         token.type = TOKEN_TRUE;
     } else if(strcmp(text, "false") == 0) {
         token.type = TOKEN_FALSE;
+    } else if(strcmp(text, "if") == 0) {
+        token.type = TOKEN_IF;
     } else {
         token.type = TOKEN_IDENTIFIER;
     }
@@ -145,6 +147,8 @@ Token get_token() {
         case ')': token.type = TOKEN_RPAREN; break;
         case '=': token.type = TOKEN_ASSIGN; break;
         case ';': token.type = TOKEN_SEMICOLON; break;
+        case '{': token.type = TOKEN_LBRACE; break;
+        case '}': token.type = TOKEN_RBRACE; break;
         case '"': { 
             token.type = TOKEN_STRING; 
             token.lexeme = get_string();

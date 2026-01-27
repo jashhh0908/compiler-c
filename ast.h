@@ -5,6 +5,7 @@ typedef enum {
     AST_PROGRAM,
     AST_ASSIGNMENT,
     AST_PRINT,
+    AST_IF,
     AST_STRING,
     AST_BINARYEXP,
     AST_IDENTIFIER,
@@ -37,6 +38,13 @@ typedef struct {
     ASTNodeType type;
     char *str;
 } ASTString; 
+
+typedef struct {
+    ASTNodeType type;
+    ASTNode *condition;
+    ASTNode **if_statements;
+    int if_stmt_count;
+} ASTIf;
 
 typedef struct {
     ASTNodeType type;
