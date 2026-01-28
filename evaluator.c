@@ -36,6 +36,34 @@ static Value evaluate_expression(ASTNode* exp, SymbolTable* table) {
             Value left = evaluate_expression(bexp->left, table);
             Value right = evaluate_expression(bexp->right, table);
 
+            if(bexp->op == '=' || bexp->op == '!') {
+                if(left.type != right.type) {
+                    printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
+                    free_value(&left);
+                    free_value(&right);
+                    exit(1);
+                }
+                int result;
+                if(bexp->op == '=') {
+                    switch(left.type) {
+                        case VALUE_INT: result = (left.val == right.val); break; 
+                        case VALUE_BOOL: result = (left.bool_val == right.bool_val); break;
+                        case VALUE_STRING: result = (strcmp(left.str, right.str) == 0); break;
+                        default: printf("Runtime Error: Unknown Value Type"); exit(1);
+                    }
+                }
+                else if(bexp->op == '!') {
+                    switch(left.type) {
+                        case VALUE_INT: result = (left.val != right.val); break;
+                        case VALUE_BOOL: result = (left.bool_val != right.bool_val); break;
+                        case VALUE_STRING: result = (strcmp(left.str, right.str) != 0); break;
+                        default: printf("Runtime Error: Unknown Value Type"); exit(1);
+                    }
+                }
+                free_value(&left);
+                free_value(&right);
+                return value_bool(result);
+            }
             if(left.type == VALUE_INT && right.type == VALUE_INT) {
                 int result;
                 switch(bexp->op) {
@@ -121,7 +149,7 @@ static void evaluate_statement(ASTNode* smt, SymbolTable* table) {
                     evaluate_statement(_if->if_statements[i], table);
                 }
             }
-            
+
             free_value(&condition);
             break;
         }

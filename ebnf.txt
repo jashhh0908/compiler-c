@@ -4,6 +4,7 @@ assignment   = identifier "=" (expression | string | boolean) ";" ;
 print_stmt   = "print" (expression | string) ";" ;
 if_stmt      = "if" "(" expression ")"  block ;
 block        = "{" { statement } "}" ; 
+comparison   = expression { ("==" | "!=") } expression ;
 expression   = term { ("+" | "-") term } ;
 term         = factor { ("*" | "/") factor } ;
 factor       = identifier | number | string | boolean | "(" expression ")" ;

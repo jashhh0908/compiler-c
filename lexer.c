@@ -145,10 +145,26 @@ Token get_token() {
         case '/': token.type = TOKEN_SLASH; break;
         case '(': token.type = TOKEN_LPAREN; break;
         case ')': token.type = TOKEN_RPAREN; break;
-        case '=': token.type = TOKEN_ASSIGN; break;
+        case '=': 
+            if(peek() == '=') {
+                advance();
+                token.type = TOKEN_EQ; 
+            } else {
+                token.type = TOKEN_ASSIGN; 
+            } 
+            break;
         case ';': token.type = TOKEN_SEMICOLON; break;
         case '{': token.type = TOKEN_LBRACE; break;
         case '}': token.type = TOKEN_RBRACE; break;
+        case '!': 
+            if(peek() == '=') {
+                advance();
+                token.type = TOKEN_NEQ;
+            } else {
+                printf("Lexer error: Unexpected character %c\n", c);
+                exit(1);
+            }
+            break;
         case '"': { 
             token.type = TOKEN_STRING; 
             token.lexeme = get_string();

@@ -9,6 +9,7 @@ ASTNode* parse_statement();
 ASTNode* parse_assignment();
 ASTNode* parse_print_smt();
 ASTNode* parse_expression();
+ASTNode* parse_comparison();
 ASTNode* parse_term();
 ASTNode* parse_factor();
 
@@ -65,7 +66,7 @@ ASTNode* parse_factor() {
         return make_number(value);
     } else if(current_token.type == TOKEN_LPAREN) {
         advance();
-        ASTNode* exp = parse_expression();
+        ASTNode* exp = parse_comparison();
         consume(TOKEN_RPAREN);
         return exp;
     } else if (current_token.type == TOKEN_STRING) {
@@ -117,12 +118,28 @@ ASTNode* parse_expression() {
     return left;
 }
 
+ASTNode* parse_comparison() {
+    ASTNode *left = parse_expression();
+    while(current_token.type == TOKEN_EQ || current_token.type == TOKEN_NEQ) {
+        char op;
+        if(current_token.type == TOKEN_EQ)
+            op = '=';
+        else if(current_token.type == TOKEN_NEQ)
+            op = '!';
+        
+        advance();
+        ASTNode *right = parse_expression();
+        left = make_binaryexp(op, left, right);
+    }
+    return left;
+}
+
 ASTNode* parse_print_smt() {
     char *print_lexeme = current_token.lexeme;
     consume(TOKEN_PRINT);
     free(print_lexeme);
     
-    ASTNode *exp = parse_expression();
+    ASTNode *exp = parse_comparison();
     consume(TOKEN_SEMICOLON);
 
     return make_print_smt(exp);
@@ -134,13 +151,13 @@ ASTNode* parse_if_smt() {
     free(if_lexeme);
 
     consume(TOKEN_LPAREN);
-    ASTNode* exp = parse_expression();
+    ASTNode* cond = parse_comparison();
     consume(TOKEN_RPAREN);
     consume(TOKEN_LBRACE);
 
     ASTIf *node = malloc(sizeof(ASTIf));
     node->type = AST_IF;
-    node->condition = exp;
+    node->condition = cond;
     node->if_statements = NULL;
     node->if_stmt_count = 0;
     while(current_token.type != TOKEN_RBRACE) {
@@ -158,7 +175,7 @@ ASTNode* parse_assignment() {
     consume(TOKEN_IDENTIFIER);
     consume(TOKEN_ASSIGN);
     
-    ASTNode* exp = parse_expression();
+    ASTNode* exp = parse_comparison();
     consume(TOKEN_SEMICOLON);
     
     ASTNode *node = make_assignment(name, exp);
@@ -263,6 +280,9 @@ void print_ast (ASTNode *node, int level) {
         case AST_IF: {
             ASTIf *_if = (ASTIf*)node;  
             printf("IF (Statements = %d)\n", _if->if_stmt_count);
+            printf("CONDITION:\n");
+            print_ast(_if->condition, level + 1);
+            printf("BODY:\n");
             for(int i = 0; i < _if->if_stmt_count; i++) {
                 print_ast(_if->if_statements[i], level + 1);
             }
