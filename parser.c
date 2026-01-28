@@ -160,6 +160,9 @@ ASTNode* parse_if_smt() {
     node->condition = cond;
     node->if_statements = NULL;
     node->if_stmt_count = 0;
+    node->else_statements = NULL;
+    node->else_stmt_count = 0;
+    
     while(current_token.type != TOKEN_RBRACE) {
         ASTNode* statement = parse_statement();
         node->if_statements = realloc(node->if_statements, sizeof(ASTNode*) * (node->if_stmt_count + 1));
@@ -167,6 +170,19 @@ ASTNode* parse_if_smt() {
         node->if_stmt_count++;
     }
     consume(TOKEN_RBRACE);
+
+    if(current_token.type == TOKEN_ELSE) {
+        consume(TOKEN_ELSE);
+        consume(TOKEN_LBRACE);
+        
+        while(current_token.type != TOKEN_RBRACE) {
+            ASTNode* statement = parse_statement();
+            node->else_statements = realloc(node->else_statements, sizeof(ASTNode*) * (node->else_stmt_count + 1));
+            node->else_statements[node->else_stmt_count] = statement;
+            node->else_stmt_count++;
+        }
+        consume(TOKEN_RBRACE);
+    }
     return (ASTNode*)node;
 }
 
@@ -285,6 +301,15 @@ void print_ast (ASTNode *node, int level) {
             printf("BODY:\n");
             for(int i = 0; i < _if->if_stmt_count; i++) {
                 print_ast(_if->if_statements[i], level + 1);
+            }
+            if(_if->else_stmt_count > 0) {
+                for(int i = 0; i < level; i++) {
+                   printf(" ");
+                }
+                printf("ELSE:\n");
+                for(int i = 0; i < _if->else_stmt_count; i++) {
+                    print_ast(_if->else_statements[i], level + 2);
+                }
             }
             break;          
         }

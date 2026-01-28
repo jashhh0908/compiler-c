@@ -1,6 +1,7 @@
-x = 5 + 5 == 10;
-print x != false;
-a = 5;
-if (a * 2 == 10) {
-    print "ok";
+if (false) {
+    print "a";
+} else {
+    if (true) {
+        print "b";
+    }
 }

@@ -148,6 +148,10 @@ static void evaluate_statement(ASTNode* smt, SymbolTable* table) {
                 for(int i = 0; i < _if->if_stmt_count; i++) {
                     evaluate_statement(_if->if_statements[i], table);
                 }
+            } else if(_if->else_stmt_count > 0) {
+                for(int i = 0; i < _if->else_stmt_count; i++) {
+                    evaluate_statement(_if->else_statements[i], table);
+                }
             }
 
             free_value(&condition);

@@ -42,8 +42,12 @@ typedef struct {
 typedef struct {
     ASTNodeType type;
     ASTNode *condition;
+
     ASTNode **if_statements;
     int if_stmt_count;
+
+    ASTNode **else_statements;
+    int else_stmt_count;
 } ASTIf;
 
 typedef struct {
