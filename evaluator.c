@@ -33,9 +33,96 @@ static Value evaluate_expression(ASTNode* exp, SymbolTable* table) {
 
         case AST_BINARYEXP: {
             ASTBinaryExp *bexp = (ASTBinaryExp*)exp;
+            
+            if(bexp->op == '&' || bexp->op == '|') {
+                Value left = evaluate_expression(bexp->left, table);
+                if(left.type != VALUE_BOOL && left.type != VALUE_INT) {
+                    printf("Runtime Error: Type mismatch (%s)", valueTypeName(left.type));
+                    free_value(&left);
+                    exit(1);
+                }
+                int result;
+                if(bexp->op == '&') {
+                    switch(left.type) {
+                        case VALUE_INT: 
+                            if(left.val == 0) {
+                                free_value(&left);
+                                return value_bool(0); 
+                            } else {
+                                Value right = evaluate_expression(bexp->right, table);
+                                if(left.type != right.type) {
+                                    printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
+                                    free_value(&left);
+                                    free_value(&right);
+                                    exit(1);
+                                }
+                                result = (left.val && right.val); 
+                                free_value(&right);
+                                break;
+                            }
+                        case VALUE_BOOL: 
+                            if(!left.bool_val) {
+                                free_value(&left);
+                                return value_bool(0);
+                            } else {
+                                Value right = evaluate_expression(bexp->right, table);
+                                if(left.type != right.type) {
+                                    printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
+                                    free_value(&left);
+                                    free_value(&right);
+                                    exit(1);
+                                }
+                                result = (left.bool_val && right.bool_val); 
+                                free_value(&right);
+                                break;
+                            }
+                        case VALUE_STRING: printf("Runtime Error: Cannot evalute && on strings\n"); exit(1);
+                        default: printf("Runtime Error: Unknown Value Type"); exit(1);
+                    }
+                } else if(bexp->op == '|') {
+                    switch(left.type) {
+                        case VALUE_INT: 
+                            if(left.val != 0) {
+                                free_value(&left);
+                                return value_bool(1); 
+                            } else {
+                                Value right = evaluate_expression(bexp->right, table);
+                                if(left.type != right.type) {
+                                    printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
+                                    free_value(&left);
+                                    free_value(&right);
+                                    exit(1);
+                                }
+                                result = (left.val || right.val); 
+                                free_value(&right);
+                                break;
+                            }
+                        case VALUE_BOOL: 
+                            if(left.bool_val) {
+                                free_value(&left);
+                                return value_bool(1);
+                            } else { 
+                                Value right = evaluate_expression(bexp->right, table);
+                                if(left.type != right.type) {
+                                    printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
+                                    free_value(&left);
+                                    free_value(&right);
+                                    exit(1);
+                                }
+                                result = (left.bool_val || right.bool_val); 
+                                free_value(&right);
+                                break;
+                            }
+                        case VALUE_STRING: printf("Runtime Error: Cannot evalute || on strings\n"); exit(1);
+                        default: printf("Runtime Error: Unknown Value Type"); exit(1);
+                    }
+                }
+                free_value(&left);
+                return value_bool(result);
+            }
+            
             Value left = evaluate_expression(bexp->left, table);
             Value right = evaluate_expression(bexp->right, table);
-
             if(bexp->op == '=' || bexp->op == '!') {
                 if(left.type != right.type) {
                     printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));

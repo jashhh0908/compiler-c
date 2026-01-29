@@ -172,6 +172,26 @@ Token get_token() {
             token.lexeme = get_string();
             break; 
         }
+        case '&': {
+            if(peek() == '&') {
+                advance();
+                token.type = TOKEN_AND;
+            } else {
+                printf("Lexer error: Unexpected character %c\n", c);
+                exit(1);
+            }
+            break;
+        }
+        case '|': {
+            if(peek() == '|') {
+                advance();
+                token.type = TOKEN_OR;
+            } else {
+                printf("Lexer error: Unexpected character %c\n", c);
+                exit(1);
+            }
+            break;
+        }
         default: 
             printf("Lexer error: Unexpected character %c\n", c);
             exit(1);

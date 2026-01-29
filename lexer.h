@@ -10,6 +10,8 @@ typedef enum {
     TOKEN_ASSIGN,
     TOKEN_EQ,
     TOKEN_NEQ,
+    TOKEN_AND,
+    TOKEN_OR,
     TOKEN_PLUS,
     TOKEN_MINUS,
     TOKEN_STAR,

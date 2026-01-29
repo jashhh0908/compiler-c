@@ -12,6 +12,9 @@ ASTNode* parse_expression();
 ASTNode* parse_comparison();
 ASTNode* parse_term();
 ASTNode* parse_factor();
+ASTNode *parse_logical_AND();
+ASTNode *parse_logical_OR();
+
 
 Token current_token;
 static const char *token_name(TokenType type) {
@@ -20,6 +23,13 @@ static const char *token_name(TokenType type) {
         case TOKEN_IDENTIFIER: return "IDENTIFIER";
         case TOKEN_NUMBER: return "NUMBER";
         case TOKEN_PRINT: return "PRINT";
+        case TOKEN_IF: return "IF";
+        case TOKEN_ELSE: return "ELSE";
+        case TOKEN_STRING: return "STRING";
+        case TOKEN_EQ: return "==";
+        case TOKEN_NEQ: return "!=";
+        case TOKEN_AND: return "&&";
+        case TOKEN_OR: return "||";
         case TOKEN_ASSIGN: return "ASSIGN";
         case TOKEN_PLUS: return "PLUS";
         case TOKEN_MINUS: return "MINUS";
@@ -28,6 +38,8 @@ static const char *token_name(TokenType type) {
         case TOKEN_SEMICOLON: return "SEMICOLON";
         case TOKEN_LPAREN: return "LPAREN";
         case TOKEN_RPAREN: return "RPAREN";
+        case TOKEN_LBRACE: return "LBRACE";
+        case TOKEN_RBRACE: return "RBRACE";
         case TOKEN_TRUE: return "TRUE";
         case TOKEN_FALSE: return "FALSE";
         default: return "UNKNOWN";
@@ -66,7 +78,7 @@ ASTNode* parse_factor() {
         return make_number(value);
     } else if(current_token.type == TOKEN_LPAREN) {
         advance();
-        ASTNode* exp = parse_comparison();
+        ASTNode* exp = parse_logical_OR();
         consume(TOKEN_RPAREN);
         return exp;
     } else if (current_token.type == TOKEN_STRING) {
@@ -134,12 +146,32 @@ ASTNode* parse_comparison() {
     return left;
 }
 
+ASTNode *parse_logical_AND() {
+    ASTNode *left = parse_comparison();
+    while(current_token.type == TOKEN_AND) {
+        advance();
+        ASTNode *right = parse_comparison();
+        left = make_binaryexp('&', left, right);
+    }
+    return left;
+}
+
+ASTNode *parse_logical_OR() {
+    ASTNode *left = parse_logical_AND();
+    while(current_token.type == TOKEN_OR) {
+        advance();
+        ASTNode *right = parse_logical_AND();
+        left = make_binaryexp('|', left, right);
+    }
+    return left;
+}
+
 ASTNode* parse_print_smt() {
     char *print_lexeme = current_token.lexeme;
     consume(TOKEN_PRINT);
     free(print_lexeme);
     
-    ASTNode *exp = parse_comparison();
+    ASTNode *exp = parse_logical_OR();
     consume(TOKEN_SEMICOLON);
 
     return make_print_smt(exp);
@@ -151,7 +183,7 @@ ASTNode* parse_if_smt() {
     free(if_lexeme);
 
     consume(TOKEN_LPAREN);
-    ASTNode* cond = parse_comparison();
+    ASTNode* cond = parse_logical_OR();
     consume(TOKEN_RPAREN);
     consume(TOKEN_LBRACE);
 
@@ -191,7 +223,7 @@ ASTNode* parse_assignment() {
     consume(TOKEN_IDENTIFIER);
     consume(TOKEN_ASSIGN);
     
-    ASTNode* exp = parse_comparison();
+    ASTNode* exp = parse_logical_OR();
     consume(TOKEN_SEMICOLON);
     
     ASTNode *node = make_assignment(name, exp);
