@@ -70,3 +70,26 @@ ASTNode* make_bool(int x) {
 
     return (ASTNode*)node;
 }
+
+ASTNode *make_if(ASTNode *condition) {
+    ASTIf *node = malloc(sizeof(ASTIf));
+    node->type = AST_IF;
+    node->condition = condition;
+    node->if_statements = NULL;
+    node->if_stmt_count = 0;
+    node->else_statements = NULL;
+    node->else_stmt_count = 0;
+
+    return (ASTNode*)node;
+}
+
+ASTNode *make_while(ASTNode *condition) {
+    ASTWhile *node = malloc(sizeof(ASTWhile));
+    node->type = AST_WHILE;
+    node->condition = condition;
+    node->while_stmts = NULL;
+    node->while_stmt_count = 0;
+
+    return (ASTNode*)node;
+}
+

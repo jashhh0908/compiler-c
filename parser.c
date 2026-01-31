@@ -71,7 +71,7 @@ ASTNode* parse_factor() {
         char *name = current_token.lexeme;
         advance();
         ASTNode *node =  make_identifier(name);
-        free(name); //
+        free(name); 
         return node;
     } else if(current_token.type == TOKEN_NUMBER){
         char *lex = current_token.lexeme;
@@ -190,16 +190,13 @@ ASTNode *parse_while_smt() {
     consume(TOKEN_RPAREN);
     consume(TOKEN_LBRACE);
 
-    ASTWhile *node = malloc(sizeof(ASTWhile));
-    node->type = AST_WHILE;
-    node->condition = condition;
-    node->while_stmts = NULL;
-    node->while_stmt_count = 0;
+    ASTNode *node = make_while(condition);
+    ASTWhile *while_node = (ASTWhile*)node;
     while(current_token.type != TOKEN_RBRACE && current_token.type != TOKEN_EOF) {
         ASTNode *statement = parse_statement();
-        node->while_stmts = realloc(node->while_stmts, sizeof(ASTNode*) * (node->while_stmt_count + 1));
-        node->while_stmts[node->while_stmt_count] = statement;
-        node->while_stmt_count++; 
+        while_node->while_stmts = realloc(while_node->while_stmts, sizeof(ASTNode*) * (while_node->while_stmt_count + 1));
+        while_node->while_stmts[while_node->while_stmt_count] = statement;
+        while_node->while_stmt_count++; 
     }
 
     if(current_token.type == TOKEN_EOF) {
@@ -210,29 +207,24 @@ ASTNode *parse_while_smt() {
     consume(TOKEN_RBRACE);
     return (ASTNode*)node;
 }
+
 ASTNode* parse_if_smt() {
     char *if_lexeme = current_token.lexeme;
     consume(TOKEN_IF);
     free(if_lexeme);
 
     consume(TOKEN_LPAREN);
-    ASTNode* cond = parse_logical_OR();
+    ASTNode* condition = parse_logical_OR();
     consume(TOKEN_RPAREN);
     consume(TOKEN_LBRACE);
 
-    ASTIf *node = malloc(sizeof(ASTIf));
-    node->type = AST_IF;
-    node->condition = cond;
-    node->if_statements = NULL;
-    node->if_stmt_count = 0;
-    node->else_statements = NULL;
-    node->else_stmt_count = 0;
-    
+    ASTNode *node = make_if(condition);
+    ASTIf *if_node = (ASTIf*)node;
     while(current_token.type != TOKEN_RBRACE) {
         ASTNode* statement = parse_statement();
-        node->if_statements = realloc(node->if_statements, sizeof(ASTNode*) * (node->if_stmt_count + 1));
-        node->if_statements[node->if_stmt_count] = statement;
-        node->if_stmt_count++;
+        if_node->if_statements = realloc(if_node->if_statements, sizeof(ASTNode*) * (if_node->if_stmt_count + 1));
+        if_node->if_statements[if_node->if_stmt_count] = statement;
+        if_node->if_stmt_count++;
     }
     consume(TOKEN_RBRACE);
 
@@ -242,9 +234,9 @@ ASTNode* parse_if_smt() {
         
         while(current_token.type != TOKEN_RBRACE) {
             ASTNode* statement = parse_statement();
-            node->else_statements = realloc(node->else_statements, sizeof(ASTNode*) * (node->else_stmt_count + 1));
-            node->else_statements[node->else_stmt_count] = statement;
-            node->else_stmt_count++;
+            if_node->else_statements = realloc(if_node->else_statements, sizeof(ASTNode*) * (if_node->else_stmt_count + 1));
+            if_node->else_statements[if_node->else_stmt_count] = statement;
+            if_node->else_stmt_count++;
         }
         consume(TOKEN_RBRACE);
     }

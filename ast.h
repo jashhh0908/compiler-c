@@ -81,13 +81,15 @@ typedef struct {
     int bool_value;
 } ASTBool;
 
-ASTNode* make_number(int x);
-ASTNode* make_identifier(char *name);
-ASTNode* make_binaryexp(char op, ASTNode* left, ASTNode* right);
-ASTNode* make_print_smt(ASTNode* exp);
-ASTNode* make_assignment(char *name, ASTNode* exp);
-ASTNode* make_string(char *str);
-ASTNode* make_bool(int x);
+ASTNode *make_number(int x);
+ASTNode *make_identifier(char *name);
+ASTNode *make_binaryexp(char op, ASTNode* left, ASTNode* right);
+ASTNode *make_print_smt(ASTNode* exp);
+ASTNode *make_assignment(char *name, ASTNode* exp);
+ASTNode *make_string(char *str);
+ASTNode *make_bool(int x);
+ASTNode *make_if(ASTNode *condition);
+ASTNode *make_while(ASTNode *condition);
 
 //for testing purpose
 void print_ast(ASTNode* node, int level);
