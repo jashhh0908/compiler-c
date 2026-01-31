@@ -245,6 +245,25 @@ static void evaluate_statement(ASTNode* smt, SymbolTable* table) {
             break;
         }
 
+        case AST_WHILE: {
+            ASTWhile *_while = (ASTWhile*)smt;
+            while(1) {
+                Value condition = evaluate_expression(_while->condition, table);
+                if(condition.type != VALUE_BOOL) {
+                    printf("Runtime Error: condition expression must return a boolean value\n");
+                    free_value(&condition);
+                    exit(1);
+                }
+                if(condition.bool_val) {
+                    for(int i = 0; i < _while->while_stmt_count; i++) {
+                        evaluate_statement(_while->while_stmts[i], table);
+                    }
+                } else {
+                    break;
+                }
+            }
+            break;
+        }
         default: printf("Unknown Node\n"); exit(1);
     }
 }

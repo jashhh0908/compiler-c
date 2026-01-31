@@ -4,14 +4,16 @@
 #include "ast.h"
 #include<stdlib.h>
 
-ASTNode* parse_program();
-ASTNode* parse_statement();
-ASTNode* parse_assignment();
-ASTNode* parse_print_smt();
-ASTNode* parse_expression();
-ASTNode* parse_comparison();
-ASTNode* parse_term();
-ASTNode* parse_factor();
+ASTNode *parse_program();
+ASTNode *parse_statement();
+ASTNode *parse_assignment();
+ASTNode *parse_print_smt();
+ASTNode *parse_if_smt();
+ASTNode *parse_while_smt();
+ASTNode *parse_expression();
+ASTNode *parse_comparison();
+ASTNode *parse_term();
+ASTNode *parse_factor();
 ASTNode *parse_logical_AND();
 ASTNode *parse_logical_OR();
 
@@ -42,6 +44,7 @@ static const char *token_name(TokenType type) {
         case TOKEN_RBRACE: return "RBRACE";
         case TOKEN_TRUE: return "TRUE";
         case TOKEN_FALSE: return "FALSE";
+        case TOKEN_WHILE: return "WHILE";   
         default: return "UNKNOWN";
     }
 }
@@ -177,6 +180,36 @@ ASTNode* parse_print_smt() {
     return make_print_smt(exp);
 }
 
+ASTNode *parse_while_smt() {
+    char *while_lexeme = current_token.lexeme;
+    consume(TOKEN_WHILE);
+    free(while_lexeme);
+
+    consume(TOKEN_LPAREN);
+    ASTNode *condition = parse_logical_OR();
+    consume(TOKEN_RPAREN);
+    consume(TOKEN_LBRACE);
+
+    ASTWhile *node = malloc(sizeof(ASTWhile));
+    node->type = AST_WHILE;
+    node->condition = condition;
+    node->while_stmts = NULL;
+    node->while_stmt_count = 0;
+    while(current_token.type != TOKEN_RBRACE && current_token.type != TOKEN_EOF) {
+        ASTNode *statement = parse_statement();
+        node->while_stmts = realloc(node->while_stmts, sizeof(ASTNode*) * (node->while_stmt_count + 1));
+        node->while_stmts[node->while_stmt_count] = statement;
+        node->while_stmt_count++; 
+    }
+
+    if(current_token.type == TOKEN_EOF) {
+        printf("Unterminated while block");
+        exit(1);
+    }
+
+    consume(TOKEN_RBRACE);
+    return (ASTNode*)node;
+}
 ASTNode* parse_if_smt() {
     char *if_lexeme = current_token.lexeme;
     consume(TOKEN_IF);
@@ -238,6 +271,8 @@ ASTNode* parse_statement() {
         return parse_assignment();
     } else if(current_token.type == TOKEN_IF) {
         return parse_if_smt();
+    } else if(current_token.type == TOKEN_WHILE) {
+        return parse_while_smt();
     } else {
         syntax_error(current_token.type, "statement (print or assignment or if)");
         return NULL;
@@ -344,6 +379,19 @@ void print_ast (ASTNode *node, int level) {
                 }
             }
             break;          
+        }
+
+        case AST_WHILE: {
+            ASTWhile *_while = (ASTWhile*) node;
+            printf("WHILE (Statements = %d)\n", _while->while_stmt_count);
+            printf("CONDITION:\n");
+            print_ast(_while->condition, level + 1);
+            printf("BODY:\n"); {
+                for(int i = 0; i < _while->while_stmt_count; i++) {
+                    print_ast(_while->while_stmts[i], level + 1);
+                }
+            }
+            break;
         }
         default: printf("Unknown Node\n");
     }

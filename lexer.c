@@ -54,6 +54,8 @@ static Token get_identifier() {
         token.type = TOKEN_IF;
     } else if(strcmp(text, "else") == 0) {
         token.type = TOKEN_ELSE;
+    } else if(strcmp(text, "while") == 0) {
+        token.type = TOKEN_WHILE;
     } else {
         token.type = TOKEN_IDENTIFIER;
     }

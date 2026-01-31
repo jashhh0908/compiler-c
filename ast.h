@@ -6,6 +6,7 @@ typedef enum {
     AST_ASSIGNMENT,
     AST_PRINT,
     AST_IF,
+    AST_WHILE,
     AST_STRING,
     AST_BINARYEXP,
     AST_IDENTIFIER,
@@ -49,6 +50,14 @@ typedef struct {
     ASTNode **else_statements;
     int else_stmt_count;
 } ASTIf;
+
+typedef struct {
+    ASTNodeType type;
+    ASTNode *condition;
+
+    ASTNode **while_stmts;
+    int while_stmt_count;
+} ASTWhile;
 
 typedef struct {
     ASTNodeType type;
