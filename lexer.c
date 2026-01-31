@@ -56,6 +56,9 @@ static Token get_identifier() {
         token.type = TOKEN_ELSE;
     } else if(strcmp(text, "while") == 0) {
         token.type = TOKEN_WHILE;
+    } else if(strcmp(text, "break") == 0) {
+        printf("---------\n");
+        token.type = TOKEN_BREAK;
     } else {
         token.type = TOKEN_IDENTIFIER;
     }

@@ -22,7 +22,8 @@ typedef enum {
     TOKEN_ELSE,
     
     TOKEN_WHILE,
-    
+    TOKEN_BREAK,
+
     TOKEN_TRUE,
     TOKEN_FALSE,
     TOKEN_STRING,

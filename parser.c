@@ -10,6 +10,7 @@ ASTNode *parse_assignment();
 ASTNode *parse_print_smt();
 ASTNode *parse_if_smt();
 ASTNode *parse_while_smt();
+ASTNode *parse_break();
 ASTNode *parse_expression();
 ASTNode *parse_comparison();
 ASTNode *parse_term();
@@ -45,6 +46,7 @@ static const char *token_name(TokenType type) {
         case TOKEN_TRUE: return "TRUE";
         case TOKEN_FALSE: return "FALSE";
         case TOKEN_WHILE: return "WHILE";   
+        case TOKEN_BREAK: return "BREAK";
         default: return "UNKNOWN";
     }
 }
@@ -208,6 +210,14 @@ ASTNode *parse_while_smt() {
     return (ASTNode*)node;
 }
 
+ASTNode *parse_break() {
+    consume(TOKEN_BREAK);
+    ASTNode *node = malloc(sizeof(ASTNode));
+    node->type = AST_BREAK;
+    consume(TOKEN_SEMICOLON);
+    return node;
+}
+
 ASTNode* parse_if_smt() {
     char *if_lexeme = current_token.lexeme;
     consume(TOKEN_IF);
@@ -220,7 +230,7 @@ ASTNode* parse_if_smt() {
 
     ASTNode *node = make_if(condition);
     ASTIf *if_node = (ASTIf*)node;
-    while(current_token.type != TOKEN_RBRACE) {
+    while(current_token.type != TOKEN_RBRACE && current_token.type != TOKEN_EOF) {
         ASTNode* statement = parse_statement();
         if_node->if_statements = realloc(if_node->if_statements, sizeof(ASTNode*) * (if_node->if_stmt_count + 1));
         if_node->if_statements[if_node->if_stmt_count] = statement;
@@ -232,7 +242,7 @@ ASTNode* parse_if_smt() {
         consume(TOKEN_ELSE);
         consume(TOKEN_LBRACE);
         
-        while(current_token.type != TOKEN_RBRACE) {
+        while(current_token.type != TOKEN_RBRACE && current_token.type != TOKEN_EOF) {
             ASTNode* statement = parse_statement();
             if_node->else_statements = realloc(if_node->else_statements, sizeof(ASTNode*) * (if_node->else_stmt_count + 1));
             if_node->else_statements[if_node->else_stmt_count] = statement;
@@ -265,6 +275,8 @@ ASTNode* parse_statement() {
         return parse_if_smt();
     } else if(current_token.type == TOKEN_WHILE) {
         return parse_while_smt();
+    } else if(current_token.type == TOKEN_BREAK) {
+        return parse_break();
     } else {
         syntax_error(current_token.type, "statement (print or assignment or if)");
         return NULL;
@@ -385,6 +397,9 @@ void print_ast (ASTNode *node, int level) {
             }
             break;
         }
+
+        case AST_BREAK: printf("BREAK\n"); break;
+         
         default: printf("Unknown Node\n");
     }
 }

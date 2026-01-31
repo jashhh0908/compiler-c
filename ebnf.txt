@@ -1,10 +1,11 @@
 program      = { statement } ;
-statement    = assignment | print_stmt | if_stmt | while_stmt;
+statement    = assignment | print_stmt | if_stmt | while_stmt | break_stmt;
 assignment   = identifier "=" expression ";" ;
 print_stmt   = "print" (expression | string) ";" ;
 if_stmt      = "if" "(" comparison ")"  block [ "else" block ];
 while_stmt   = "while" "(" comparison ")" block;
 block        = "{" { statement } "}" ; 
+break_stmt   = "break" ";" ;
 comparison   = expression { ("==" | "!=") expression };
 expression   = term { ("+" | "-") term } ;
 term         = factor { ("*" | "/") factor } ;

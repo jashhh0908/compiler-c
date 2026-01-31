@@ -198,14 +198,14 @@ static Value evaluate_expression(ASTNode* exp, SymbolTable* table) {
     }
 }
 
-static void evaluate_statement(ASTNode* smt, SymbolTable* table) {
+static ExecutionResult evaluate_statement(ASTNode* smt, SymbolTable* table) {
     switch(smt->type) {
         case AST_ASSIGNMENT: {
             ASTAssignment *assign = (ASTAssignment*)smt;
             Value value = evaluate_expression(assign->exp, table);
             symbolTable_set(table, assign->name, value);
             free_value(&value);
-            break;            
+            return EXEC_NORMAL;            
         }
 
         case AST_PRINT: {
@@ -219,7 +219,7 @@ static void evaluate_statement(ASTNode* smt, SymbolTable* table) {
                 printf("%s\n", x.bool_val ? "true" : "false");
             }
             free_value(&x);
-            break;
+            return EXEC_NORMAL;
         }
 
         case AST_IF: {
@@ -233,16 +233,22 @@ static void evaluate_statement(ASTNode* smt, SymbolTable* table) {
 
             if(condition.bool_val) {
                 for(int i = 0; i < _if->if_stmt_count; i++) {
-                    evaluate_statement(_if->if_statements[i], table);
+                    ExecutionResult result = evaluate_statement(_if->if_statements[i], table);
+                    if(result == EXEC_BREAK) {
+                        return result;
+                    }
                 }
             } else if(_if->else_stmt_count > 0) {
                 for(int i = 0; i < _if->else_stmt_count; i++) {
-                    evaluate_statement(_if->else_statements[i], table);
+                    ExecutionResult result = evaluate_statement(_if->else_statements[i], table);
+                    if(result == EXEC_BREAK) {
+                        return result;
+                    }
                 }
             }
 
             free_value(&condition);
-            break;
+            return EXEC_NORMAL;
         }
 
         case AST_WHILE: {
@@ -255,15 +261,22 @@ static void evaluate_statement(ASTNode* smt, SymbolTable* table) {
                     exit(1);
                 }
                 if(condition.bool_val) {
+                    free_value(&condition);
                     for(int i = 0; i < _while->while_stmt_count; i++) {
-                        evaluate_statement(_while->while_stmts[i], table);
+                        ExecutionResult result = evaluate_statement(_while->while_stmts[i], table);
+                        if(result == EXEC_BREAK) {
+                            return EXEC_NORMAL;
+                        }
                     }
                 } else {
+                    free_value(&condition);
                     break;
                 }
             }
-            break;
+            return EXEC_NORMAL;
         }
+
+        case AST_BREAK: return EXEC_BREAK;
         default: printf("Unknown Node\n"); exit(1);
     }
 }
@@ -273,7 +286,11 @@ void evaluate_program(ASTNode *program_root) {
     int i;
     ASTProgram *program = (ASTProgram*)program_root;
     for(i = 0; i < program->smt_count; i++) {
-        evaluate_statement(program->statements[i], table);
+        ExecutionResult result = evaluate_statement(program->statements[i], table);
+        if(result == EXEC_BREAK) {
+            printf("Runtime Error: 'break' used outside of loop\n");
+            exit(1);
+        }
     }
 
     symbolTable_free(table);
