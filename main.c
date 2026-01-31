@@ -6,7 +6,7 @@
 #include "evaluator.h"
 
 char *read_file() {
-    FILE* file = fopen("tests/logical_check.txt", "rb");
+    FILE* file = fopen("tests/while_check.txt", "rb");
     if(!file) {
         printf("Could not open\n");
         return NULL;
