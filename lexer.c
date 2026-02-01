@@ -57,7 +57,6 @@ static Token get_identifier() {
     } else if(strcmp(text, "while") == 0) {
         token.type = TOKEN_WHILE;
     } else if(strcmp(text, "break") == 0) {
-        printf("---------\n");
         token.type = TOKEN_BREAK;
     } else {
         token.type = TOKEN_IDENTIFIER;
@@ -197,6 +196,22 @@ Token get_token() {
             }
             break;
         }
+        case '<': 
+            if(peek() == '=') {
+                advance();
+                token.type = TOKEN_LTE;
+            } else {
+                token.type = TOKEN_LT;
+            }
+            break;
+        case '>': 
+            if(peek() == '=') {
+                advance();
+                token.type = TOKEN_GTE;
+            } else {
+                token.type = TOKEN_GT;
+            }
+            break;
         default: 
             printf("Lexer error: Unexpected character %c\n", c);
             exit(1);
@@ -204,4 +219,3 @@ Token get_token() {
 
     return token;
 }
-

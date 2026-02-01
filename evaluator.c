@@ -151,6 +151,25 @@ static Value evaluate_expression(ASTNode* exp, SymbolTable* table) {
                 free_value(&right);
                 return value_bool(result);
             }
+            if(bexp->op == '<' || bexp->op == '>' || bexp->op == 'l' || bexp->op == 'g') {
+                if(left.type != VALUE_INT || right.type != VALUE_INT) {
+                    printf("Runtime Error: relational operators require integers, got (%s, %s)\n", valueTypeName(left.type), valueTypeName(right.type));
+                    free_value(&left);
+                    free_value(&right);
+                    exit(1);
+                }
+                int result;
+                switch (bexp->op) {
+                    case '<': result = left.val < right.val; break;
+                    case '>': result = left.val > right.val; break;
+                    case 'l': result = left.val <= right.val; break;
+                    case 'g': result = left.val >= right.val; break;
+                    default: printf("Runtime Error: unknown relational operator\n"); exit(1);
+                }
+                free_value(&left);
+                free_value(&left);
+                return value_bool(result);
+            }   
             if(left.type == VALUE_INT && right.type == VALUE_INT) {
                 int result;
                 switch(bexp->op) {

@@ -31,6 +31,11 @@ static const char *token_name(TokenType type) {
         case TOKEN_STRING: return "STRING";
         case TOKEN_EQ: return "==";
         case TOKEN_NEQ: return "!=";
+        case TOKEN_LT: return "<";
+        case TOKEN_LTE: return "<=";
+        case TOKEN_GT: return ">";
+        case TOKEN_GTE: return ">=";
+
         case TOKEN_AND: return "&&";
         case TOKEN_OR: return "||";
         case TOKEN_ASSIGN: return "ASSIGN";
@@ -137,13 +142,19 @@ ASTNode* parse_expression() {
 
 ASTNode* parse_comparison() {
     ASTNode *left = parse_expression();
-    while(current_token.type == TOKEN_EQ || current_token.type == TOKEN_NEQ) {
+    while(current_token.type == TOKEN_EQ || current_token.type == TOKEN_NEQ ||
+          current_token.type == TOKEN_LT || current_token.type == TOKEN_LTE ||
+          current_token.type == TOKEN_GT || current_token.type == TOKEN_GTE) {
         char op;
-        if(current_token.type == TOKEN_EQ)
-            op = '=';
-        else if(current_token.type == TOKEN_NEQ)
-            op = '!';
-        
+        switch(current_token.type) {
+            case TOKEN_EQ: op = '='; break;
+            case TOKEN_NEQ: op = '!'; break;
+            case TOKEN_LT: op = '<'; break;
+            case TOKEN_LTE: op = 'l'; break;
+            case TOKEN_GT: op = '>'; break;
+            case TOKEN_GTE: op = 'g'; break;
+            default: printf("unknown operator\n"); exit(1);
+        }
         advance();
         ASTNode *right = parse_expression();
         left = make_binaryexp(op, left, right);
@@ -399,7 +410,7 @@ void print_ast (ASTNode *node, int level) {
         }
 
         case AST_BREAK: printf("BREAK\n"); break;
-         
+
         default: printf("Unknown Node\n");
     }
 }
