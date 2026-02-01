@@ -14,6 +14,171 @@ char *valueTypeName(ValueType v) {
         default: return "unknown";
     }
 }
+
+static Value evaluate_string_concat(Value left, Value right);
+static Value evaluate_arithmetic(char op, Value left, Value right);
+static Value evaluate_relational(char op, Value left, Value right);
+static Value evaluate_equality(char op, Value left, Value right);
+static Value evaluate_binaryexp(ASTBinaryExp *bexp, SymbolTable *table);
+static Value evaluate_expression(ASTNode* exp, SymbolTable* table);
+static ExecutionResult evaluate_statement(ASTNode* smt, SymbolTable* table);
+
+static Value evaluate_string_concat(Value left, Value right) {
+    if (left.type != VALUE_STRING || right.type != VALUE_STRING) {
+        printf("Runtime Error: cannot apply (+) to (%s, %s)\n", valueTypeName(left.type), valueTypeName(right.type));
+        exit(1);
+    } 
+    size_t length = strlen(left.str) + strlen(right.str) + 1;
+    char *concat_str = malloc(length);
+    strcpy(concat_str, left.str);
+    strcat(concat_str, right.str);
+    Value v = value_string(concat_str);
+    free(concat_str);
+    return v;
+}    
+
+static Value evaluate_arithmetic(char op, Value left, Value right) {
+    if (left.type != VALUE_INT || right.type != VALUE_INT) {
+        printf("Runtime Error: arithmetic requires ints, got (%s, %s)\n", valueTypeName(left.type), valueTypeName(right.type));
+        exit(1);
+    }
+    int result;
+    switch(op) {
+        case '+': result = left.val + right.val; break;
+        case '-': result = left.val - right.val; break;
+        case '*': result = left.val * right.val; break;
+        case '/': 
+            if(right.val == 0) {
+                printf("Runtime Error: Division by zero is not possible\n");
+                exit(1);
+            }
+            result = left.val / right.val;
+            break;
+        default: printf("Runtime Error: unknown arithmetic operator\n"); exit(1);
+    }
+    return value_int(result);
+}
+
+static Value evaluate_relational(char op, Value left, Value right) {
+    if(left.type != VALUE_INT || right.type != VALUE_INT) {
+        printf("Runtime Error: relational operators require integers, got (%s, %s)\n", valueTypeName(left.type), valueTypeName(right.type));
+        exit(1);
+    }
+    int result;
+    switch (op) {
+        case '<': result = left.val < right.val; break;
+        case '>': result = left.val > right.val; break;
+        case 'l': result = left.val <= right.val; break;
+        case 'g': result = left.val >= right.val; break;
+        default: printf("Runtime Error: unknown relational operator\n"); exit(1);
+    }
+    return value_bool(result);
+}
+
+static Value evaluate_equality(char op, Value left, Value right) {
+    if(left.type != right.type) {
+        printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
+        exit(1);
+    }
+    int result = 0;
+    if(op == '=') {
+        switch(left.type) {
+            case VALUE_INT: result = (left.val == right.val); break; 
+            case VALUE_BOOL: result = (left.bool_val == right.bool_val); break;
+            case VALUE_STRING: result = (strcmp(left.str, right.str) == 0); break;
+            default: printf("Runtime Error: Unknown Value Type in equality evaluation"); exit(1);
+        }
+    }
+    else if(op == '!') {
+        switch(left.type) {
+            case VALUE_INT: result = (left.val != right.val); break;
+            case VALUE_BOOL: result = (left.bool_val != right.bool_val); break;
+            case VALUE_STRING: result = (strcmp(left.str, right.str) != 0); break;
+            default: printf("Runtime Error: Unknown Value Type"); exit(1);
+        }
+    }
+    return value_bool(result);
+}
+
+static Value evaluate_binaryexp(ASTBinaryExp *bexp, SymbolTable *table) {   
+    Value left = evaluate_expression(bexp->left, table);
+    if (bexp->op == '&' || bexp->op == '|') {
+        if (left.type != VALUE_BOOL && left.type != VALUE_INT) {
+            printf("Runtime Error: logical operators require boolean or int, got (%s)\n", valueTypeName(left.type));
+            exit(1);
+        }   
+    }
+
+    if(bexp->op == '&') {
+        if((left.type == VALUE_BOOL && !left.bool_val) || (left.type == VALUE_INT && left.val == 0)) {
+            free_value(&left);
+            return value_bool(0);
+        }
+    }
+    if(bexp->op == '|') {
+        if((left.type == VALUE_BOOL && left.bool_val) || (left.type == VALUE_INT && left.val != 0)) {
+            free_value(&left);
+            return value_bool(1);
+        }
+    }
+    
+    Value right = evaluate_expression(bexp->right, table);
+    Value result;
+    switch(bexp->op) {
+        case '+': 
+            if (left.type == VALUE_STRING && right.type == VALUE_STRING) {
+                result = evaluate_string_concat(left, right);
+            }
+            else if(left.type == VALUE_INT && right.type == VALUE_INT) {
+                result = evaluate_arithmetic(bexp->op, left, right);
+            } else {
+                printf("Runtime Error: cannot apply (%c) to (%s, %s)\n", bexp->op, valueTypeName(left.type), valueTypeName(right.type));
+                exit(1);
+            }
+            break;
+        case '-':
+        case '*':
+        case '/': result = evaluate_arithmetic(bexp->op, left, right); break;
+        case '<':
+        case '>':
+        case 'l':
+        case 'g': result = evaluate_relational(bexp->op, left, right); break;
+        case '=':
+        case '!': result = evaluate_equality(bexp->op, left, right); break;
+        case '&': 
+            if(left.type != right.type) {
+                printf("Runtime Error: cannot apply (%c) to (%s, %s)\n", bexp->op, valueTypeName(left.type), valueTypeName(right.type));
+                exit(1);
+            }
+            if(left.type == VALUE_BOOL) {
+                int res = left.bool_val && right.bool_val;
+                result = value_bool(res);
+            } else if(left.type == VALUE_INT) {
+                int res = left.val && right.val;
+                result = value_bool(res);
+            }
+            break;
+        case '|': 
+            if(left.type != right.type) {
+                printf("Runtime Error: cannot apply (%c) to (%s, %s)\n", bexp->op, valueTypeName(left.type), valueTypeName(right.type));
+                exit(1);
+            }
+            if(left.type == VALUE_BOOL) {
+                int res = left.bool_val || right.bool_val;
+                result = value_bool(res);
+            } else if(left.type == VALUE_INT) {
+                int res = left.val || right.val;
+                result = value_bool(res);
+            }
+            break;
+        default: printf("Runtime Error: unknown binary operator\n"); exit(1);
+    }
+
+    free_value(&left);
+    free_value(&right);
+    return result;
+}
+
 static Value evaluate_expression(ASTNode* exp, SymbolTable* table) {
     switch(exp->type) {
         case AST_NUMBER: {
@@ -33,179 +198,7 @@ static Value evaluate_expression(ASTNode* exp, SymbolTable* table) {
 
         case AST_BINARYEXP: {
             ASTBinaryExp *bexp = (ASTBinaryExp*)exp;
-            
-            if(bexp->op == '&' || bexp->op == '|') {
-                Value left = evaluate_expression(bexp->left, table);
-                if(left.type != VALUE_BOOL && left.type != VALUE_INT) {
-                    printf("Runtime Error: Type mismatch (%s)", valueTypeName(left.type));
-                    free_value(&left);
-                    exit(1);
-                }
-                int result;
-                if(bexp->op == '&') {
-                    switch(left.type) {
-                        case VALUE_INT: 
-                            if(left.val == 0) {
-                                free_value(&left);
-                                return value_bool(0); 
-                            } else {
-                                Value right = evaluate_expression(bexp->right, table);
-                                if(left.type != right.type) {
-                                    printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
-                                    free_value(&left);
-                                    free_value(&right);
-                                    exit(1);
-                                }
-                                result = (left.val && right.val); 
-                                free_value(&right);
-                                break;
-                            }
-                        case VALUE_BOOL: 
-                            if(!left.bool_val) {
-                                free_value(&left);
-                                return value_bool(0);
-                            } else {
-                                Value right = evaluate_expression(bexp->right, table);
-                                if(left.type != right.type) {
-                                    printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
-                                    free_value(&left);
-                                    free_value(&right);
-                                    exit(1);
-                                }
-                                result = (left.bool_val && right.bool_val); 
-                                free_value(&right);
-                                break;
-                            }
-                        case VALUE_STRING: printf("Runtime Error: Cannot evalute && on strings\n"); exit(1);
-                        default: printf("Runtime Error: Unknown Value Type"); exit(1);
-                    }
-                } else if(bexp->op == '|') {
-                    switch(left.type) {
-                        case VALUE_INT: 
-                            if(left.val != 0) {
-                                free_value(&left);
-                                return value_bool(1); 
-                            } else {
-                                Value right = evaluate_expression(bexp->right, table);
-                                if(left.type != right.type) {
-                                    printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
-                                    free_value(&left);
-                                    free_value(&right);
-                                    exit(1);
-                                }
-                                result = (left.val || right.val); 
-                                free_value(&right);
-                                break;
-                            }
-                        case VALUE_BOOL: 
-                            if(left.bool_val) {
-                                free_value(&left);
-                                return value_bool(1);
-                            } else { 
-                                Value right = evaluate_expression(bexp->right, table);
-                                if(left.type != right.type) {
-                                    printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
-                                    free_value(&left);
-                                    free_value(&right);
-                                    exit(1);
-                                }
-                                result = (left.bool_val || right.bool_val); 
-                                free_value(&right);
-                                break;
-                            }
-                        case VALUE_STRING: printf("Runtime Error: Cannot evalute || on strings\n"); exit(1);
-                        default: printf("Runtime Error: Unknown Value Type"); exit(1);
-                    }
-                }
-                free_value(&left);
-                return value_bool(result);
-            }
-            
-            Value left = evaluate_expression(bexp->left, table);
-            Value right = evaluate_expression(bexp->right, table);
-            if(bexp->op == '=' || bexp->op == '!') {
-                if(left.type != right.type) {
-                    printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
-                    free_value(&left);
-                    free_value(&right);
-                    exit(1);
-                }
-                int result;
-                if(bexp->op == '=') {
-                    switch(left.type) {
-                        case VALUE_INT: result = (left.val == right.val); break; 
-                        case VALUE_BOOL: result = (left.bool_val == right.bool_val); break;
-                        case VALUE_STRING: result = (strcmp(left.str, right.str) == 0); break;
-                        default: printf("Runtime Error: Unknown Value Type"); exit(1);
-                    }
-                }
-                else if(bexp->op == '!') {
-                    switch(left.type) {
-                        case VALUE_INT: result = (left.val != right.val); break;
-                        case VALUE_BOOL: result = (left.bool_val != right.bool_val); break;
-                        case VALUE_STRING: result = (strcmp(left.str, right.str) != 0); break;
-                        default: printf("Runtime Error: Unknown Value Type"); exit(1);
-                    }
-                }
-                free_value(&left);
-                free_value(&right);
-                return value_bool(result);
-            }
-            if(bexp->op == '<' || bexp->op == '>' || bexp->op == 'l' || bexp->op == 'g') {
-                if(left.type != VALUE_INT || right.type != VALUE_INT) {
-                    printf("Runtime Error: relational operators require integers, got (%s, %s)\n", valueTypeName(left.type), valueTypeName(right.type));
-                    free_value(&left);
-                    free_value(&right);
-                    exit(1);
-                }
-                int result;
-                switch (bexp->op) {
-                    case '<': result = left.val < right.val; break;
-                    case '>': result = left.val > right.val; break;
-                    case 'l': result = left.val <= right.val; break;
-                    case 'g': result = left.val >= right.val; break;
-                    default: printf("Runtime Error: unknown relational operator\n"); exit(1);
-                }
-                free_value(&left);
-                free_value(&left);
-                return value_bool(result);
-            }   
-            if(left.type == VALUE_INT && right.type == VALUE_INT) {
-                int result;
-                switch(bexp->op) {
-                    case '+': result = left.val + right.val; break;
-                    case '-': result = left.val - right.val; break;
-                    case '*': result = left.val * right.val; break;
-                    case '/': 
-                        if(right.val == 0) {
-                            printf("Error: Division by zero is not possible\n");
-                            exit(1);
-                        }
-                        result = left.val / right.val;
-                        break;
-                    default: printf("Error: Unknown operator\n"); exit(1);
-                }
-                free_value(&left);
-                free_value(&right);
-                return value_int(result);
-            }
-
-            if(left.type == VALUE_STRING && right.type == VALUE_STRING && bexp->op == '+') {
-                size_t length = strlen(left.str) + strlen(right.str) + 1;
-                char *concat_str = malloc(length);
-                strcpy(concat_str, left.str);
-                strcat(concat_str, right.str);
-
-                free_value(&left);
-                free_value(&right);
-                Value v = value_string(concat_str);
-                free(concat_str);
-                return v;
-            }
-            printf("Runtime Error: cannot apply operator (%c) to types (%s, %s)\n", bexp->op, valueTypeName(left.type), valueTypeName(right.type));
-            free_value(&left);
-            free_value(&right);
-            exit(1);
+            return evaluate_binaryexp(bexp, table);
         }
 
         case AST_BOOL: {
