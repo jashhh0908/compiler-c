@@ -5,7 +5,7 @@
 #include "ast.h"
 #include "evaluator.h"
 #include "codegen.h"
- 
+#include "vm.h"
 char *read_file() {
     FILE* file = fopen("tests/input.txt", "rb");
     if(!file) {
@@ -31,7 +31,12 @@ int main(void) {
     if(success != NULL) {
         printf("Parsed successfully!\n");
         //print_ast(success, 0);
-        debug_compile(success);
+        //debug_compile(success);
+        Chunk chunk;
+        compile(success, &chunk);
+        VM vm;
+        initVM(&vm, &chunk);
+        run(&vm);
     }
     return 0;
 }
