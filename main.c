@@ -4,9 +4,10 @@
 #include "parser.h"
 #include "ast.h"
 #include "evaluator.h"
-
+#include "codegen.h"
+ 
 char *read_file() {
-    FILE* file = fopen("tests/relation_check.txt", "rb");
+    FILE* file = fopen("tests/input.txt", "rb");
     if(!file) {
         printf("Could not open\n");
         return NULL;
@@ -30,7 +31,7 @@ int main(void) {
     if(success != NULL) {
         printf("Parsed successfully!\n");
         //print_ast(success, 0);
-        evaluate_program(success);
+        debug_compile(success);
     }
     return 0;
 }
