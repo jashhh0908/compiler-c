@@ -33,6 +33,15 @@ void compileNode(ASTNode *node, Chunk *chunk) {
         if(bexp->op == '+') {
             emitInstruction(chunk, OP_ADD, 0);
         }
+        if(bexp->op == '-') {
+            emitInstruction(chunk, OP_SUB, 0);
+        }
+        if(bexp->op == '*') {
+            emitInstruction(chunk, OP_MUL, 0);
+        }
+        if(bexp->op == '/') {
+            emitInstruction(chunk, OP_DIV, 0);
+        }
         break;
     }
     

@@ -47,6 +47,50 @@ void run(VM *vm) {
                 break;
             }
 
+            case OP_SUB: {
+                Value b = pop(vm);
+                Value a = pop(vm);
+                if (a.type != VALUE_INT || b.type != VALUE_INT) {
+                    printf("Runtime Error: SUB expects integers\n");
+                    return;
+                }
+
+                Value result;   
+                result = value_int(a.val - b.val);
+                push(vm, result);
+                break;
+            }
+
+            case OP_MUL: {
+                Value b = pop(vm);
+                Value a = pop(vm);
+                if (a.type != VALUE_INT || b.type != VALUE_INT) {
+                    printf("Runtime Error: MUL expects integers\n");
+                    return;
+                }
+
+                Value result;   
+                result = value_int(a.val * b.val);
+                push(vm, result);
+                break;
+            }
+
+            case OP_DIV: {
+                Value b = pop(vm);
+                Value a = pop(vm);
+                if (a.type != VALUE_INT || b.type != VALUE_INT) {
+                    printf("Runtime Error: ADD expects integers\n");
+                    return;
+                }
+                if(b.val == 0) {
+                    printf("Runtime Error: DIV cannot be applied to divisor 0\n");
+                    return;
+                }
+                Value result;   
+                result = value_int(a.val / b.val);
+                push(vm, result);
+                break;
+            }
             case OP_PRINT: {
                 Value v = pop(vm);
                 if(v.type == VALUE_INT) {
