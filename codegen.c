@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include "chunk.h"
 #include "ast.h"
+#include "symbol_table.h"
 
 char *opCodeName(Instruction code) {
     switch(code.opcode) {
@@ -12,7 +13,7 @@ char *opCodeName(Instruction code) {
         default: printf("Code yet to put"); exit(1);
     }
 }
-void compileNode(ASTNode *node, Chunk *chunk) {
+void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
     switch (node->type) {
     case AST_NUMBER: {
         ASTNumber *num = (ASTNumber*)node;
@@ -26,10 +27,29 @@ void compileNode(ASTNode *node, Chunk *chunk) {
         break;        
     }
     
+    case AST_ASSIGNMENT: {
+        ASTAssignment *assign = (ASTAssignment*)node;
+        compileNode(assign->exp, chunk, table);
+        int index = symbolTable_getIndex(table, assign->name);
+        emitInstruction(chunk, OP_STORE, index);
+        break; 
+    }
+
+    case AST_IDENTIFIER: {
+        ASTIdentifier *idn = (ASTIdentifier*)node;
+        int index = symbolTable_find(table, idn->name);
+        if(index == -1) {
+            printf("Error: Undefined Variable %s\n", idn->name);
+            exit(1);
+        }
+        emitInstruction(chunk, OP_LOAD, index);
+        break;
+    }
+
     case AST_BINARYEXP: {
         ASTBinaryExp *bexp = (ASTBinaryExp*)node;
-        compileNode(bexp->left, chunk);
-        compileNode(bexp->right, chunk);
+        compileNode(bexp->left, chunk, table);
+        compileNode(bexp->right, chunk, table);
         if(bexp->op == '+') {
             emitInstruction(chunk, OP_ADD, 0);
         }
@@ -47,7 +67,7 @@ void compileNode(ASTNode *node, Chunk *chunk) {
     
     case AST_PRINT: {
         ASTPrint *print = (ASTPrint*)node;
-        compileNode(print->exp, chunk);
+        compileNode(print->exp, chunk, table);
         emitInstruction(chunk, OP_PRINT, 0);
         break;
     }
@@ -55,7 +75,7 @@ void compileNode(ASTNode *node, Chunk *chunk) {
     case AST_PROGRAM: {
         ASTProgram *root = (ASTProgram*)node;
         for(int i = 0; i < root->smt_count; i++) {
-            compileNode(root->statements[i], chunk);
+            compileNode(root->statements[i], chunk, table);
         }
         break;
     }
@@ -65,14 +85,16 @@ void compileNode(ASTNode *node, Chunk *chunk) {
 
 //main compilation
 void compile(ASTNode *root, Chunk *chunk) {
+    SymbolTable *table = symbolTable_create();
     initChunk(chunk);
-    compileNode(root, chunk);
+    compileNode(root, chunk, table);
     emitInstruction(chunk, OP_HALT, 0);
 }
 
 //to debug
 void debug_compile(ASTNode *root) {
     Chunk chunk;
+    SymbolTable *table = symbolTable_create();
     compile(root, &chunk);    
     printf("Constants:\n");
     for (int i = 0; i < chunk.constants.count; i++) {

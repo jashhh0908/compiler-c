@@ -33,6 +33,18 @@ void run(VM *vm) {
                 break;
             }
 
+            case OP_STORE: {
+                Value v = pop(vm);
+                vm->globals[instruction.operand] = v;
+                break;
+            }
+            
+            case OP_LOAD: {
+                Value v = vm->globals[instruction.operand];
+                push(vm, v);
+                break;
+            }
+            
             case OP_ADD: {
                 Value b = pop(vm);
                 Value a = pop(vm);

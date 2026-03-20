@@ -10,6 +10,7 @@ typedef struct {
     Instruction *ip; 
     Value stack[SIZE];
     Value *top;  
+    Value globals[SIZE];
 } VM;
 
 void initVM(VM *vm, Chunk *chunk);
