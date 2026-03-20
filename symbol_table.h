@@ -4,8 +4,9 @@
 typedef struct SymbolTable SymbolTable;
 
 SymbolTable* symbolTable_create(void);
-void symbolTable_set(SymbolTable* table, const char *name, Value val);
-Value symbolTable_get(SymbolTable* table, const char* name);
+int symbolTable_find(SymbolTable *table, const char *name);
+int symbolTable_add(SymbolTable *table, const char *name);
+int symbolTable_getIndex(SymbolTable *table, const char *name);
 void symbolTable_free(SymbolTable* table);
 
 #endif

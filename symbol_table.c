@@ -4,12 +4,13 @@
 #include "symbol_table.h"
 typedef struct Symbol {
     char *name;
-    Value value;
+    int index;
     struct Symbol *next;   
 } Symbol;
 
 typedef struct SymbolTable {
     Symbol *head;
+    int count;
 } SymbolTable;
 
 SymbolTable *symbolTable_create(void) {
@@ -19,49 +20,51 @@ SymbolTable *symbolTable_create(void) {
         return NULL;
     } 
     table->head = NULL;
+    table->count = 0;
     return table;
 }
 
-void symbolTable_set(SymbolTable* table, const char *name, Value val) {
+int symbolTable_find(SymbolTable *table, const char *name) {
     Symbol *current = table->head;
+    
     while(current != NULL) {
         if(strcmp(current->name, name) == 0) {
-            free_value(&current->value);
-            current->value = value_copy(&val);
-            return;
+            return current->index;
         }
         current = current->next;
     }
-    
-    Symbol *newSymbol = malloc(sizeof(Symbol));
+    return -1;
+}
 
+int symbolTable_add(SymbolTable *table, const char *name) {
+    Symbol *newSymbol = malloc(sizeof(Symbol));
+    
     newSymbol->name = malloc(strlen(name) + 1);
     strcpy(newSymbol->name, name);
-    newSymbol->value = value_copy(&val);
-    newSymbol->next = table->head;
 
-    table->head = newSymbol;
-}
-
-Value symbolTable_get(SymbolTable* table, const char *name) {
-    Symbol *current = table->head;
-    while(current != NULL) {
-        if(strcmp(current->name, name) == 0) {
-            return value_copy(&current->value);
-        }
-        current = current->next;
-    }
+    newSymbol->index = table->count;
+    table->count++;
     
-    printf("Error: Undefined variable %s\n", name);
-    exit(1);
+    newSymbol->next = table->head;
+    table->head = newSymbol;
+    return newSymbol->index;
 }
 
+int symbolTable_getIndex(SymbolTable *table, const char *name) {
+    int idx;
+    idx = symbolTable_find(table, name);
+    if(idx != -1) {
+        return idx;
+    } else {
+        idx = symbolTable_add(table, name);
+        return idx;
+    }
+}
 void symbolTable_free(SymbolTable* table) {
     Symbol *current = table->head;
     while(current != NULL) {
         Symbol *next = current->next;
         free(current->name); //name is allocated space separately hence it is freed separately 
-        free_value(&current->value);
         free(current);
         current = next;
     }
