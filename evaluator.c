@@ -1,309 +1,319 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<string.h>
-#include "ast.h"
-#include "evaluator.h"
-#include "symbol_table.h"
-#include "value.h"
+/*
+    This file previously contained a direct AST evaluator (tree-walking interpreter).
+    The project has now transitioned to a bytecode-based architecture:
+    Lexer → Parser → AST → Codegen → Bytecode → VM
+    Evaluation is now handled by the virtual machine (vm.c), making this file currently unused.
+    Kept for reference and potential future debugging or comparison.
+ */
 
-char *valueTypeName(ValueType v) {
-    switch(v) {
-        case VALUE_INT: return "int";
-        case VALUE_STRING: return "string";
-        case VALUE_BOOL: return "boolean";
-        default: return "unknown";
-    }
-}
 
-static Value evaluate_string_concat(Value left, Value right);
-static Value evaluate_arithmetic(char op, Value left, Value right);
-static Value evaluate_relational(char op, Value left, Value right);
-static Value evaluate_equality(char op, Value left, Value right);
-static Value evaluate_binaryexp(ASTBinaryExp *bexp, SymbolTable *table);
-static Value evaluate_expression(ASTNode* exp, SymbolTable* table);
-static ExecutionResult evaluate_statement(ASTNode* smt, SymbolTable* table);
 
-static Value evaluate_string_concat(Value left, Value right) {
-    if (left.type != VALUE_STRING || right.type != VALUE_STRING) {
-        printf("Runtime Error: cannot apply (+) to (%s, %s)\n", valueTypeName(left.type), valueTypeName(right.type));
-        exit(1);
-    } 
-    size_t length = strlen(left.str) + strlen(right.str) + 1;
-    char *concat_str = malloc(length);
-    strcpy(concat_str, left.str);
-    strcat(concat_str, right.str);
-    Value v = value_string(concat_str);
-    free(concat_str);
-    return v;
-}    
+// #include<stdio.h>
+// #include<stdlib.h>
+// #include<string.h>
+// #include "ast.h"
+// #include "evaluator.h"
+// #include "symbol_table.h"
+// #include "value.h"
 
-static Value evaluate_arithmetic(char op, Value left, Value right) {
-    if (left.type != VALUE_INT || right.type != VALUE_INT) {
-        printf("Runtime Error: arithmetic requires ints, got (%s, %s)\n", valueTypeName(left.type), valueTypeName(right.type));
-        exit(1);
-    }
-    int result;
-    switch(op) {
-        case '+': result = left.val + right.val; break;
-        case '-': result = left.val - right.val; break;
-        case '*': result = left.val * right.val; break;
-        case '/': 
-            if(right.val == 0) {
-                printf("Runtime Error: Division by zero is not possible\n");
-                exit(1);
-            }
-            result = left.val / right.val;
-            break;
-        default: printf("Runtime Error: unknown arithmetic operator\n"); exit(1);
-    }
-    return value_int(result);
-}
+// char *valueTypeName(ValueType v) {
+//     switch(v) {
+//         case VALUE_INT: return "int";
+//         case VALUE_STRING: return "string";
+//         case VALUE_BOOL: return "boolean";
+//         default: return "unknown";
+//     }
+// }
 
-static Value evaluate_relational(char op, Value left, Value right) {
-    if(left.type != VALUE_INT || right.type != VALUE_INT) {
-        printf("Runtime Error: relational operators require integers, got (%s, %s)\n", valueTypeName(left.type), valueTypeName(right.type));
-        exit(1);
-    }
-    int result;
-    switch (op) {
-        case '<': result = left.val < right.val; break;
-        case '>': result = left.val > right.val; break;
-        case 'l': result = left.val <= right.val; break;
-        case 'g': result = left.val >= right.val; break;
-        default: printf("Runtime Error: unknown relational operator\n"); exit(1);
-    }
-    return value_bool(result);
-}
+// static Value evaluate_string_concat(Value left, Value right);
+// static Value evaluate_arithmetic(char op, Value left, Value right);
+// static Value evaluate_relational(char op, Value left, Value right);
+// static Value evaluate_equality(char op, Value left, Value right);
+// static Value evaluate_binaryexp(ASTBinaryExp *bexp, SymbolTable *table);
+// static Value evaluate_expression(ASTNode* exp, SymbolTable* table);
+// static ExecutionResult evaluate_statement(ASTNode* smt, SymbolTable* table);
 
-static Value evaluate_equality(char op, Value left, Value right) {
-    if(left.type != right.type) {
-        printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
-        exit(1);
-    }
-    int result = 0;
-    if(op == '=') {
-        switch(left.type) {
-            case VALUE_INT: result = (left.val == right.val); break; 
-            case VALUE_BOOL: result = (left.bool_val == right.bool_val); break;
-            case VALUE_STRING: result = (strcmp(left.str, right.str) == 0); break;
-            default: printf("Runtime Error: Unknown Value Type in equality evaluation"); exit(1);
-        }
-    }
-    else if(op == '!') {
-        switch(left.type) {
-            case VALUE_INT: result = (left.val != right.val); break;
-            case VALUE_BOOL: result = (left.bool_val != right.bool_val); break;
-            case VALUE_STRING: result = (strcmp(left.str, right.str) != 0); break;
-            default: printf("Runtime Error: Unknown Value Type"); exit(1);
-        }
-    }
-    return value_bool(result);
-}
+// static Value evaluate_string_concat(Value left, Value right) {
+//     if (left.type != VALUE_STRING || right.type != VALUE_STRING) {
+//         printf("Runtime Error: cannot apply (+) to (%s, %s)\n", valueTypeName(left.type), valueTypeName(right.type));
+//         exit(1);
+//     } 
+//     size_t length = strlen(left.str) + strlen(right.str) + 1;
+//     char *concat_str = malloc(length);
+//     strcpy(concat_str, left.str);
+//     strcat(concat_str, right.str);
+//     Value v = value_string(concat_str);
+//     free(concat_str);
+//     return v;
+// }    
 
-static Value evaluate_binaryexp(ASTBinaryExp *bexp, SymbolTable *table) {   
-    Value left = evaluate_expression(bexp->left, table);
-    if (bexp->op == '&' || bexp->op == '|') {
-        if (left.type != VALUE_BOOL && left.type != VALUE_INT) {
-            printf("Runtime Error: logical operators require boolean or int, got (%s)\n", valueTypeName(left.type));
-            exit(1);
-        }   
-    }
+// static Value evaluate_arithmetic(char op, Value left, Value right) {
+//     if (left.type != VALUE_INT || right.type != VALUE_INT) {
+//         printf("Runtime Error: arithmetic requires ints, got (%s, %s)\n", valueTypeName(left.type), valueTypeName(right.type));
+//         exit(1);
+//     }
+//     int result;
+//     switch(op) {
+//         case '+': result = left.val + right.val; break;
+//         case '-': result = left.val - right.val; break;
+//         case '*': result = left.val * right.val; break;
+//         case '/': 
+//             if(right.val == 0) {
+//                 printf("Runtime Error: Division by zero is not possible\n");
+//                 exit(1);
+//             }
+//             result = left.val / right.val;
+//             break;
+//         default: printf("Runtime Error: unknown arithmetic operator\n"); exit(1);
+//     }
+//     return value_int(result);
+// }
 
-    if(bexp->op == '&') {
-        if((left.type == VALUE_BOOL && !left.bool_val) || (left.type == VALUE_INT && left.val == 0)) {
-            free_value(&left);
-            return value_bool(0);
-        }
-    }
-    if(bexp->op == '|') {
-        if((left.type == VALUE_BOOL && left.bool_val) || (left.type == VALUE_INT && left.val != 0)) {
-            free_value(&left);
-            return value_bool(1);
-        }
-    }
+// static Value evaluate_relational(char op, Value left, Value right) {
+//     if(left.type != VALUE_INT || right.type != VALUE_INT) {
+//         printf("Runtime Error: relational operators require integers, got (%s, %s)\n", valueTypeName(left.type), valueTypeName(right.type));
+//         exit(1);
+//     }
+//     int result;
+//     switch (op) {
+//         case '<': result = left.val < right.val; break;
+//         case '>': result = left.val > right.val; break;
+//         case 'l': result = left.val <= right.val; break;
+//         case 'g': result = left.val >= right.val; break;
+//         default: printf("Runtime Error: unknown relational operator\n"); exit(1);
+//     }
+//     return value_bool(result);
+// }
+
+// static Value evaluate_equality(char op, Value left, Value right) {
+//     if(left.type != right.type) {
+//         printf("Runtime Error: Type mismatch (%s, %s)", valueTypeName(left.type), valueTypeName(right.type));
+//         exit(1);
+//     }
+//     int result = 0;
+//     if(op == '=') {
+//         switch(left.type) {
+//             case VALUE_INT: result = (left.val == right.val); break; 
+//             case VALUE_BOOL: result = (left.bool_val == right.bool_val); break;
+//             case VALUE_STRING: result = (strcmp(left.str, right.str) == 0); break;
+//             default: printf("Runtime Error: Unknown Value Type in equality evaluation"); exit(1);
+//         }
+//     }
+//     else if(op == '!') {
+//         switch(left.type) {
+//             case VALUE_INT: result = (left.val != right.val); break;
+//             case VALUE_BOOL: result = (left.bool_val != right.bool_val); break;
+//             case VALUE_STRING: result = (strcmp(left.str, right.str) != 0); break;
+//             default: printf("Runtime Error: Unknown Value Type"); exit(1);
+//         }
+//     }
+//     return value_bool(result);
+// }
+
+// static Value evaluate_binaryexp(ASTBinaryExp *bexp, SymbolTable *table) {   
+//     Value left = evaluate_expression(bexp->left, table);
+//     if (bexp->op == '&' || bexp->op == '|') {
+//         if (left.type != VALUE_BOOL && left.type != VALUE_INT) {
+//             printf("Runtime Error: logical operators require boolean or int, got (%s)\n", valueTypeName(left.type));
+//             exit(1);
+//         }   
+//     }
+
+//     if(bexp->op == '&') {
+//         if((left.type == VALUE_BOOL && !left.bool_val) || (left.type == VALUE_INT && left.val == 0)) {
+//             free_value(&left);
+//             return value_bool(0);
+//         }
+//     }
+//     if(bexp->op == '|') {
+//         if((left.type == VALUE_BOOL && left.bool_val) || (left.type == VALUE_INT && left.val != 0)) {
+//             free_value(&left);
+//             return value_bool(1);
+//         }
+//     }
     
-    Value right = evaluate_expression(bexp->right, table);
-    Value result;
-    switch(bexp->op) {
-        case '+': 
-            if (left.type == VALUE_STRING && right.type == VALUE_STRING) {
-                result = evaluate_string_concat(left, right);
-            }
-            else if(left.type == VALUE_INT && right.type == VALUE_INT) {
-                result = evaluate_arithmetic(bexp->op, left, right);
-            } else {
-                printf("Runtime Error: cannot apply (%c) to (%s, %s)\n", bexp->op, valueTypeName(left.type), valueTypeName(right.type));
-                exit(1);
-            }
-            break;
-        case '-':
-        case '*':
-        case '/': result = evaluate_arithmetic(bexp->op, left, right); break;
-        case '<':
-        case '>':
-        case 'l':
-        case 'g': result = evaluate_relational(bexp->op, left, right); break;
-        case '=':
-        case '!': result = evaluate_equality(bexp->op, left, right); break;
-        case '&': 
-            if(left.type != right.type) {
-                printf("Runtime Error: cannot apply (%c) to (%s, %s)\n", bexp->op, valueTypeName(left.type), valueTypeName(right.type));
-                exit(1);
-            }
-            if(left.type == VALUE_BOOL) {
-                int res = left.bool_val && right.bool_val;
-                result = value_bool(res);
-            } else if(left.type == VALUE_INT) {
-                int res = left.val && right.val;
-                result = value_bool(res);
-            }
-            break;
-        case '|': 
-            if(left.type != right.type) {
-                printf("Runtime Error: cannot apply (%c) to (%s, %s)\n", bexp->op, valueTypeName(left.type), valueTypeName(right.type));
-                exit(1);
-            }
-            if(left.type == VALUE_BOOL) {
-                int res = left.bool_val || right.bool_val;
-                result = value_bool(res);
-            } else if(left.type == VALUE_INT) {
-                int res = left.val || right.val;
-                result = value_bool(res);
-            }
-            break;
-        default: printf("Runtime Error: unknown binary operator\n"); exit(1);
-    }
+//     Value right = evaluate_expression(bexp->right, table);
+//     Value result;
+//     switch(bexp->op) {
+//         case '+': 
+//             if (left.type == VALUE_STRING && right.type == VALUE_STRING) {
+//                 result = evaluate_string_concat(left, right);
+//             }
+//             else if(left.type == VALUE_INT && right.type == VALUE_INT) {
+//                 result = evaluate_arithmetic(bexp->op, left, right);
+//             } else {
+//                 printf("Runtime Error: cannot apply (%c) to (%s, %s)\n", bexp->op, valueTypeName(left.type), valueTypeName(right.type));
+//                 exit(1);
+//             }
+//             break;
+//         case '-':
+//         case '*':
+//         case '/': result = evaluate_arithmetic(bexp->op, left, right); break;
+//         case '<':
+//         case '>':
+//         case 'l':
+//         case 'g': result = evaluate_relational(bexp->op, left, right); break;
+//         case '=':
+//         case '!': result = evaluate_equality(bexp->op, left, right); break;
+//         case '&': 
+//             if(left.type != right.type) {
+//                 printf("Runtime Error: cannot apply (%c) to (%s, %s)\n", bexp->op, valueTypeName(left.type), valueTypeName(right.type));
+//                 exit(1);
+//             }
+//             if(left.type == VALUE_BOOL) {
+//                 int res = left.bool_val && right.bool_val;
+//                 result = value_bool(res);
+//             } else if(left.type == VALUE_INT) {
+//                 int res = left.val && right.val;
+//                 result = value_bool(res);
+//             }
+//             break;
+//         case '|': 
+//             if(left.type != right.type) {
+//                 printf("Runtime Error: cannot apply (%c) to (%s, %s)\n", bexp->op, valueTypeName(left.type), valueTypeName(right.type));
+//                 exit(1);
+//             }
+//             if(left.type == VALUE_BOOL) {
+//                 int res = left.bool_val || right.bool_val;
+//                 result = value_bool(res);
+//             } else if(left.type == VALUE_INT) {
+//                 int res = left.val || right.val;
+//                 result = value_bool(res);
+//             }
+//             break;
+//         default: printf("Runtime Error: unknown binary operator\n"); exit(1);
+//     }
 
-    free_value(&left);
-    free_value(&right);
-    return result;
-}
+//     free_value(&left);
+//     free_value(&right);
+//     return result;
+// }
 
-static Value evaluate_expression(ASTNode* exp, SymbolTable* table) {
-    switch(exp->type) {
-        case AST_NUMBER: {
-            ASTNumber *num = (ASTNumber*)exp;
-            return value_int(num->value);
-        }
+// static Value evaluate_expression(ASTNode* exp, SymbolTable* table) {
+//     switch(exp->type) {
+//         case AST_NUMBER: {
+//             ASTNumber *num = (ASTNumber*)exp;
+//             return value_int(num->value);
+//         }
 
-        case AST_IDENTIFIER: {
-            ASTIdentifier *id = (ASTIdentifier*)exp;
-            return symbolTable_get(table, id->name);
-        }
+//         case AST_IDENTIFIER: {
+//             ASTIdentifier *id = (ASTIdentifier*)exp;
+//             return symbolTable_get(table, id->name);
+//         }
 
-        case AST_STRING: {
-            ASTString *s = (ASTString*)exp;
-            return value_string(s->str);
-        }
+//         case AST_STRING: {
+//             ASTString *s = (ASTString*)exp;
+//             return value_string(s->str);
+//         }
 
-        case AST_BINARYEXP: {
-            ASTBinaryExp *bexp = (ASTBinaryExp*)exp;
-            return evaluate_binaryexp(bexp, table);
-        }
+//         case AST_BINARYEXP: {
+//             ASTBinaryExp *bexp = (ASTBinaryExp*)exp;
+//             return evaluate_binaryexp(bexp, table);
+//         }
 
-        case AST_BOOL: {
-            ASTBool *b = (ASTBool*)exp;
-            return value_bool(b->bool_value);
-        }
+//         case AST_BOOL: {
+//             ASTBool *b = (ASTBool*)exp;
+//             return value_bool(b->bool_value);
+//         }
 
-        default: printf("Error: Unknown Node Type for evaluation\n"); exit(1);
-    }
-}
+//         default: printf("Error: Unknown Node Type for evaluation\n"); exit(1);
+//     }
+// }
 
-static ExecutionResult evaluate_statement(ASTNode* smt, SymbolTable* table) {
-    switch(smt->type) {
-        case AST_ASSIGNMENT: {
-            ASTAssignment *assign = (ASTAssignment*)smt;
-            Value value = evaluate_expression(assign->exp, table);
-            symbolTable_set(table, assign->name, value);
-            free_value(&value);
-            return EXEC_NORMAL;            
-        }
+// static ExecutionResult evaluate_statement(ASTNode* smt, SymbolTable* table) {
+//     switch(smt->type) {
+//         case AST_ASSIGNMENT: {
+//             ASTAssignment *assign = (ASTAssignment*)smt;
+//             Value value = evaluate_expression(assign->exp, table);
+//             symbolTable_set(table, assign->name, value);
+//             free_value(&value);
+//             return EXEC_NORMAL;            
+//         }
 
-        case AST_PRINT: {
-            ASTPrint *print = (ASTPrint*)smt;
-            Value x = evaluate_expression(print->exp, table);
-            if(x.type == VALUE_STRING) {
-                printf("%s\n", x.str);
-            } else if(x.type == VALUE_INT) {
-                printf("%d\n", x.val);
-            } else if(x.type == VALUE_BOOL) {
-                printf("%s\n", x.bool_val ? "true" : "false");
-            }
-            free_value(&x);
-            return EXEC_NORMAL;
-        }
+//         case AST_PRINT: {
+//             ASTPrint *print = (ASTPrint*)smt;
+//             Value x = evaluate_expression(print->exp, table);
+//             if(x.type == VALUE_STRING) {
+//                 printf("%s\n", x.str);
+//             } else if(x.type == VALUE_INT) {
+//                 printf("%d\n", x.val);
+//             } else if(x.type == VALUE_BOOL) {
+//                 printf("%s\n", x.bool_val ? "true" : "false");
+//             }
+//             free_value(&x);
+//             return EXEC_NORMAL;
+//         }
 
-        case AST_IF: {
-            ASTIf *_if = (ASTIf*)smt;
-            Value condition = evaluate_expression(_if->condition, table);
-            if(condition.type != VALUE_BOOL) {
-                printf("Runtime Error: condition expression must return a boolean value\n");
-                free_value(&condition);
-                exit(1);
-            }
+//         case AST_IF: {
+//             ASTIf *_if = (ASTIf*)smt;
+//             Value condition = evaluate_expression(_if->condition, table);
+//             if(condition.type != VALUE_BOOL) {
+//                 printf("Runtime Error: condition expression must return a boolean value\n");
+//                 free_value(&condition);
+//                 exit(1);
+//             }
 
-            if(condition.bool_val) {
-                for(int i = 0; i < _if->if_stmt_count; i++) {
-                    ExecutionResult result = evaluate_statement(_if->if_statements[i], table);
-                    if(result == EXEC_BREAK) {
-                        return result;
-                    }
-                }
-            } else if(_if->else_stmt_count > 0) {
-                for(int i = 0; i < _if->else_stmt_count; i++) {
-                    ExecutionResult result = evaluate_statement(_if->else_statements[i], table);
-                    if(result == EXEC_BREAK) {
-                        return result;
-                    }
-                }
-            }
+//             if(condition.bool_val) {
+//                 for(int i = 0; i < _if->if_stmt_count; i++) {
+//                     ExecutionResult result = evaluate_statement(_if->if_statements[i], table);
+//                     if(result == EXEC_BREAK) {
+//                         return result;
+//                     }
+//                 }
+//             } else if(_if->else_stmt_count > 0) {
+//                 for(int i = 0; i < _if->else_stmt_count; i++) {
+//                     ExecutionResult result = evaluate_statement(_if->else_statements[i], table);
+//                     if(result == EXEC_BREAK) {
+//                         return result;
+//                     }
+//                 }
+//             }
 
-            free_value(&condition);
-            return EXEC_NORMAL;
-        }
+//             free_value(&condition);
+//             return EXEC_NORMAL;
+//         }
 
-        case AST_WHILE: {
-            ASTWhile *_while = (ASTWhile*)smt;
-            while(1) {
-                Value condition = evaluate_expression(_while->condition, table);
-                if(condition.type != VALUE_BOOL) {
-                    printf("Runtime Error: condition expression must return a boolean value\n");
-                    free_value(&condition);
-                    exit(1);
-                }
-                if(condition.bool_val) {
-                    free_value(&condition);
-                    for(int i = 0; i < _while->while_stmt_count; i++) {
-                        ExecutionResult result = evaluate_statement(_while->while_stmts[i], table);
-                        if(result == EXEC_BREAK) {
-                            return EXEC_NORMAL;
-                        }
-                    }
-                } else {
-                    free_value(&condition);
-                    break;
-                }
-            }
-            return EXEC_NORMAL;
-        }
+//         case AST_WHILE: {
+//             ASTWhile *_while = (ASTWhile*)smt;
+//             while(1) {
+//                 Value condition = evaluate_expression(_while->condition, table);
+//                 if(condition.type != VALUE_BOOL) {
+//                     printf("Runtime Error: condition expression must return a boolean value\n");
+//                     free_value(&condition);
+//                     exit(1);
+//                 }
+//                 if(condition.bool_val) {
+//                     free_value(&condition);
+//                     for(int i = 0; i < _while->while_stmt_count; i++) {
+//                         ExecutionResult result = evaluate_statement(_while->while_stmts[i], table);
+//                         if(result == EXEC_BREAK) {
+//                             return EXEC_NORMAL;
+//                         }
+//                     }
+//                 } else {
+//                     free_value(&condition);
+//                     break;
+//                 }
+//             }
+//             return EXEC_NORMAL;
+//         }
 
-        case AST_BREAK: return EXEC_BREAK;
-        default: printf("Unknown Node\n"); exit(1);
-    }
-}
+//         case AST_BREAK: return EXEC_BREAK;
+//         default: printf("Unknown Node\n"); exit(1);
+//     }
+// }
 
-void evaluate_program(ASTNode *program_root) {
-    SymbolTable *table = symbolTable_create();
-    int i;
-    ASTProgram *program = (ASTProgram*)program_root;
-    for(i = 0; i < program->smt_count; i++) {
-        ExecutionResult result = evaluate_statement(program->statements[i], table);
-        if(result == EXEC_BREAK) {
-            printf("Runtime Error: 'break' used outside of loop\n");
-            exit(1);
-        }
-    }
+// void evaluate_program(ASTNode *program_root) {
+//     SymbolTable *table = symbolTable_create();
+//     int i;
+//     ASTProgram *program = (ASTProgram*)program_root;
+//     for(i = 0; i < program->smt_count; i++) {
+//         ExecutionResult result = evaluate_statement(program->statements[i], table);
+//         if(result == EXEC_BREAK) {
+//             printf("Runtime Error: 'break' used outside of loop\n");
+//             exit(1);
+//         }
+//     }
 
-    symbolTable_free(table);
-}
+//     symbolTable_free(table);
+// }
