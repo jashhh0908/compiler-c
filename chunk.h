@@ -17,6 +17,7 @@ typedef struct {
 typedef struct {
     Instruction *code;
     int count;
+    int capacity;
     ConstantPool constants;
 } Chunk;
 

@@ -4,6 +4,7 @@
 void initChunk(Chunk *chunk) {
     chunk->code = NULL;
     chunk->count = 0;
+    chunk->capacity = 0;
     chunk->constants.values = NULL;
     chunk->constants.count = 0;
     chunk->constants.capacity = 0;
@@ -28,6 +29,16 @@ int addConstant(Value v, Chunk *chunk) {
 void emitInstruction(Chunk *chunk, OpCode opcode, int operand) {
     if(chunk->count == 0) {
         chunk->code = malloc(sizeof(Instruction) * 8);
+    }
+    if(chunk->count >= chunk->capacity) {
+        int newCapacity;
+        if(chunk->capacity == 0) 
+            newCapacity = 8;
+        else   
+            newCapacity = chunk->capacity * 2;
+        
+        chunk->code = realloc(chunk->code, sizeof(Instruction) * newCapacity);
+        chunk->capacity = newCapacity;
     }
     chunk->code[chunk->count].opcode = opcode;
     chunk->code[chunk->count].operand = operand;
