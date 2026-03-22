@@ -1,6 +1,8 @@
 #include "vm.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+
 void initVM(VM *vm, Chunk *chunk) {
     vm->chunk = chunk;
     vm->ip = chunk->code;
@@ -103,13 +105,137 @@ void run(VM *vm) {
                 push(vm, result);
                 break;
             }
+
+            case OP_LT: {
+                Value b = pop(vm);
+                Value a = pop(vm);
+
+                if(a.type != VALUE_INT || b.type != VALUE_INT) {
+                    printf("Runtime Error: '<' operator expects integers\n");
+                    return;
+                }
+
+                int result = a.val < b.val;
+                push(vm, value_bool(result));
+                break;
+            }
+
+            case OP_GT: {
+                Value b = pop(vm);
+                Value a = pop(vm);
+
+                if(a.type != VALUE_INT || b.type != VALUE_INT) {
+                    printf("Runtime Error: '>' operator expects integers\n");
+                    return;
+                }
+                int result = a.val > b.val;
+                push(vm, value_bool(result));
+                break;
+            }
+
+            case OP_LTE: {
+                Value b = pop(vm);
+                Value a = pop(vm);
+
+                if(a.type != VALUE_INT || b.type != VALUE_INT) {
+                    printf("Runtime Error: '<=' operator expects integers\n");
+                    return;
+                }
+
+                int result = a.val <= b.val;
+                push(vm, value_bool(result));
+                break;
+            }
+
+            case OP_GTE: {
+                Value b = pop(vm);
+                Value a = pop(vm);
+
+                if(a.type != VALUE_INT || b.type != VALUE_INT) {
+                    printf("Runtime Error: '>=' operator expects integers\n");
+                    return;
+                }
+
+                int result = a.val >= b.val;
+                push(vm, value_bool(result));
+                break;
+            }
+
+            case OP_EQ: {
+                Value b = pop(vm);
+                Value a = pop(vm);
+
+                if(a.type != b.type) {
+                    printf("Runtime error: Type mismatch for '==' comparison");
+                    return;
+                }
+
+                int result = 0;
+                switch (a.type) {
+                    case VALUE_INT: {
+                        result = (a.val == b.val);
+                        break;
+                    }
+                    case VALUE_BOOL: {
+                        result = (a.bool_val == b.bool_val);
+                        break;
+                    }
+                    case VALUE_STRING: {
+                        result = (strcmp(a.str, b.str) == 0);
+                        break;
+
+                    }
+                    default: printf("Runtime Error: unknown value type\n"); exit(1);
+                    break;
+                }
+                push(vm, value_bool(result));
+                break;
+            }
+
+            case OP_NEQ: {
+                Value b = pop(vm);
+                Value a = pop(vm);
+
+                if(a.type != b.type) {
+                    printf("Runtime error: Type mismatch for '!=' comparison");
+                    return;
+                }
+
+                int result = 0;
+                switch (a.type) {
+                    case VALUE_INT: {
+                        result = (a.val != b.val);
+                        break;
+                    }
+                    case VALUE_BOOL: {
+                        result = (a.bool_val != b.bool_val);
+                        break;
+                    }
+                    case VALUE_STRING: {
+                        result = (strcmp(a.str, b.str) != 0);
+                        break;
+
+                    }
+                    default: printf("Runtime Error: unknown value type\n"); exit(1);
+                    break;
+                }
+                push(vm, value_bool(result));
+                break;
+            }
+
             case OP_PRINT: {
                 Value v = pop(vm);
-                if(v.type == VALUE_INT) {
-                    printf("%d\n", v.val);
+                switch(v.type) {
+                    case VALUE_INT: printf("%d\n", v.val); break;
+                    case VALUE_BOOL: 
+                        if(v.bool_val == 1) printf("true\n"); 
+                        else if(v.bool_val == 0) printf("false\n");
+                        break;
+                    case VALUE_STRING: printf("%s\n", v.str);
                 }
                 break;
             }
+
             case OP_HALT: return;
             default:
                 printf("Unknown opcode encountered.\n");

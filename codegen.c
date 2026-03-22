@@ -8,6 +8,20 @@ char *opCodeName(Instruction code) {
     switch(code.opcode) {
         case OP_CONST: return "OP_CONST";
         case OP_ADD: return "OP_ADD";
+        case OP_SUB: return "OP_SUB";
+        case OP_DIV: return "OP_DIV";
+        case OP_MUL: return "OP_MUL";
+        case OP_LT: return "OP_LT";
+        case OP_GT: return "OP_GT";
+        case OP_GTE: return "OP_GTE";
+        case OP_LTE: return "OP_LTE";
+        case OP_EQ: return "OP_EQ";
+        case OP_NEQ: return "OP_NEQ";
+        case OP_LOAD: return "OP_LOAD";
+        case OP_STORE: return "OP_STORE";
+        case OP_POP: return "OP_POP";    
+        case OP_JUMP: return "OP_JUMP";
+        case OP_JUMP_IF_FALSE: return "OP_JUMP_IF_FALSE";
         case OP_PRINT: return "OP_PRINT";
         case OP_HALT: return "OP_HALT";
         default: printf("Code yet to put"); exit(1);
@@ -50,17 +64,18 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
         ASTBinaryExp *bexp = (ASTBinaryExp*)node;
         compileNode(bexp->left, chunk, table);
         compileNode(bexp->right, chunk, table);
-        if(bexp->op == '+') {
-            emitInstruction(chunk, OP_ADD, 0);
-        }
-        if(bexp->op == '-') {
-            emitInstruction(chunk, OP_SUB, 0);
-        }
-        if(bexp->op == '*') {
-            emitInstruction(chunk, OP_MUL, 0);
-        }
-        if(bexp->op == '/') {
-            emitInstruction(chunk, OP_DIV, 0);
+        switch(bexp->op) {
+            case '+': emitInstruction(chunk, OP_ADD, 0); break;
+            case '-': emitInstruction(chunk, OP_SUB, 0); break;
+            case '*': emitInstruction(chunk, OP_MUL, 0); break;
+            case '/': emitInstruction(chunk, OP_DIV, 0); break;
+            case '>': emitInstruction(chunk, OP_GT, 0); break;
+            case '<': emitInstruction(chunk, OP_LT, 0); break;
+            case 'g': emitInstruction(chunk, OP_GTE, 0); break;
+            case 'l': emitInstruction(chunk, OP_LTE, 0); break;
+            case '=': emitInstruction(chunk, OP_EQ, 0); break;
+            case '!': emitInstruction(chunk, OP_NEQ, 0); break;
+            default: printf("Compiling Error: Unknown binary operation '%c' found\n", bexp->op); exit(1); 
         }
         break;
     }
@@ -94,7 +109,6 @@ void compile(ASTNode *root, Chunk *chunk) {
 //to debug
 void debug_compile(ASTNode *root) {
     Chunk chunk;
-    SymbolTable *table = symbolTable_create();
     compile(root, &chunk);    
     printf("Constants:\n");
     for (int i = 0; i < chunk.constants.count; i++) {
