@@ -117,11 +117,16 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
     case AST_IF: {
         ASTIf *ifNode = (ASTIf*)node;
         compileNode(ifNode->condition, chunk, table);
-        int jump = emitJump(chunk, OP_JUMP_IF_FALSE);
+        int jumpIfFalse = emitJump(chunk, OP_JUMP_IF_FALSE);
         for(int i = 0; i < ifNode->if_stmt_count; i++){
             compileNode(ifNode->if_statements[i], chunk, table);
         }
-        jumpOffset(chunk, jump);
+        int jumpToEnd = emitJump(chunk, OP_JUMP);
+        jumpOffset(chunk, jumpIfFalse);
+        for(int i = 0; i < ifNode->else_stmt_count; i++){
+            compileNode(ifNode->else_statements[i], chunk, table);
+        }
+        jumpOffset(chunk, jumpToEnd);
         break;
     }
 

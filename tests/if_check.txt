@@ -3,5 +3,7 @@ print x;
 if (false){
     print "This statement is inside if statement";
     print "false condition will skip these";
-} 
+} else {
+    print "This statement is inside else statement";
+}
 print "This statement is outside if statement";

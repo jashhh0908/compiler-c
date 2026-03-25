@@ -231,6 +231,11 @@ void run(VM *vm) {
                 break;
             }
 
+            case OP_JUMP: {
+                vm->ip += instruction.operand;;
+                break;
+            }
+            
             case OP_JUMP_IF_FALSE: {
                 Value cond = pop(vm);
                 if(!isTruthy(cond)) {
@@ -238,6 +243,7 @@ void run(VM *vm) {
                 }
                 break;
             }
+
             case OP_PRINT: {
                 Value v = pop(vm);
                 switch(v.type) {
