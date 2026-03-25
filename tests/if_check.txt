@@ -1,9 +1,7 @@
 x = 20;
 print x;
 if (false){
-    print x;
-    print x;
-    print x;
-    print x;
+    print "This statement is inside if statement";
+    print "false condition will skip these";
 } 
-print 10;
+print "This statement is outside if statement";

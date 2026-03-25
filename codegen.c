@@ -63,6 +63,18 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
         break;
     }
 
+    case AST_STRING: {
+        ASTString *stringNode = (ASTString*)node;
+
+        Value v;
+        v.type = VALUE_STRING;
+        v.str = stringNode->str;
+
+        int index = addConstant(v, chunk);
+        emitInstruction(chunk, OP_CONST, index);
+        break;
+    }
+
     case AST_ASSIGNMENT: {
         ASTAssignment *assign = (ASTAssignment*)node;
         compileNode(assign->exp, chunk, table);
@@ -129,8 +141,6 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
     }
     default: printf("Unknown node type encountered in codegen\n: %d", node->type); exit(1);
     }
-
-    
 }
 
 //main compilation
