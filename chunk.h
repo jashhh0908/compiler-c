@@ -23,5 +23,5 @@ typedef struct {
 
 void initChunk(Chunk *chunk);
 int addConstant(Value v, Chunk *chunk);
-void emitInstruction(Chunk *chunk, OpCode opcode, int operand);
+int emitInstruction(Chunk *chunk, OpCode opcode, int operand);
 #endif

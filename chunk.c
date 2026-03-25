@@ -26,9 +26,10 @@ int addConstant(Value v, Chunk *chunk) {
     return pool->count++;
 }
 
-void emitInstruction(Chunk *chunk, OpCode opcode, int operand) {
+int emitInstruction(Chunk *chunk, OpCode opcode, int operand) {
     if(chunk->count == 0) {
         chunk->code = malloc(sizeof(Instruction) * 8);
+        chunk->capacity = 8;
     }
     if(chunk->count >= chunk->capacity) {
         int newCapacity;
@@ -42,6 +43,5 @@ void emitInstruction(Chunk *chunk, OpCode opcode, int operand) {
     }
     chunk->code[chunk->count].opcode = opcode;
     chunk->code[chunk->count].operand = operand;
-    chunk->count++;
-
+    return chunk->count++;
 }

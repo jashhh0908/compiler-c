@@ -27,6 +27,16 @@ char *opCodeName(Instruction code) {
         default: printf("Code yet to put"); exit(1);
     }
 }
+
+int emitJump(Chunk *chunk, OpCode opcode) {
+    return emitInstruction(chunk,opcode, -1);
+}
+
+void jumpOffset(Chunk *chunk, int jumpIndex) {
+    int offset = chunk->count - jumpIndex - 1;
+    chunk->code[jumpIndex].operand = offset;
+}
+
 void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
     switch (node->type) {
     case AST_NUMBER: {
@@ -41,6 +51,18 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
         break;        
     }
     
+    case AST_BOOL: {
+        ASTBool *boolNode = (ASTBool*)node;
+
+        Value v;
+        v.type = VALUE_BOOL;
+        v.val = boolNode->bool_value;
+
+        int index = addConstant(v, chunk);
+        emitInstruction(chunk, OP_CONST, index);
+        break;
+    }
+
     case AST_ASSIGNMENT: {
         ASTAssignment *assign = (ASTAssignment*)node;
         compileNode(assign->exp, chunk, table);
@@ -80,6 +102,17 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
         break;
     }
     
+    case AST_IF: {
+        ASTIf *ifNode = (ASTIf*)node;
+        compileNode(ifNode->condition, chunk, table);
+        int jump = emitJump(chunk, OP_JUMP_IF_FALSE);
+        for(int i = 0; i < ifNode->if_stmt_count; i++){
+            compileNode(ifNode->if_statements[i], chunk, table);
+        }
+        jumpOffset(chunk, jump);
+        break;
+    }
+
     case AST_PRINT: {
         ASTPrint *print = (ASTPrint*)node;
         compileNode(print->exp, chunk, table);
@@ -94,8 +127,10 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
         }
         break;
     }
-    default: printf("Unknown node type encountered in codegen\n"); exit(1);
+    default: printf("Unknown node type encountered in codegen\n: %d", node->type); exit(1);
     }
+
+    
 }
 
 //main compilation

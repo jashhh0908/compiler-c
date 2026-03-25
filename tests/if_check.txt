@@ -1,7 +1,9 @@
-if (false) {
-    print "a";
-} else {
-    if (true) {
-        print "b";
-    }
-}
+x = 20;
+print x;
+if (false){
+    print x;
+    print x;
+    print x;
+    print x;
+} 
+print 10;

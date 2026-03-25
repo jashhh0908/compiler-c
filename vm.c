@@ -23,6 +23,14 @@ static Value pop(VM *vm) {
     return *vm->top;
 }
 
+int isTruthy(Value v) {
+    switch(v.type) {
+        case VALUE_BOOL: return v.bool_val; 
+        case VALUE_INT: return v.val != 0;
+        case VALUE_STRING: return v.str != NULL;
+        default: return 0;
+    }
+}
 void run(VM *vm) {
     while(1) {
         Instruction instruction = *vm->ip;
@@ -223,6 +231,13 @@ void run(VM *vm) {
                 break;
             }
 
+            case OP_JUMP_IF_FALSE: {
+                Value cond = pop(vm);
+                if(!isTruthy(cond)) {
+                    vm->ip += instruction.operand;
+                }
+                break;
+            }
             case OP_PRINT: {
                 Value v = pop(vm);
                 switch(v.type) {
