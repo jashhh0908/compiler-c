@@ -1,8 +1,10 @@
 x = 20;
 print x;
-if (false){
+if (x > 20){
     print "This statement is inside if statement";
     print "false condition will skip these";
+} else if (x >= 20) {
+    print "This statement is inside else if statement";
 } else {
     print "This statement is inside else statement";
 }

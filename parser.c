@@ -251,15 +251,21 @@ ASTNode* parse_if_smt() {
 
     if(current_token.type == TOKEN_ELSE) {
         consume(TOKEN_ELSE);
-        consume(TOKEN_LBRACE);
-        
-        while(current_token.type != TOKEN_RBRACE && current_token.type != TOKEN_EOF) {
+        if(current_token.type == TOKEN_IF) {
+            ASTNode *elseIfStmt = parse_if_smt();
+            if_node->else_statements = realloc(if_node->else_statements, sizeof(ASTNode*) * (if_node->else_stmt_count + 1));
+            if_node->else_statements[if_node->else_stmt_count] = elseIfStmt;
+            if_node->else_stmt_count++;
+        } else if (current_token.type == TOKEN_LBRACE) {
+            consume(TOKEN_LBRACE);
+            while(current_token.type != TOKEN_RBRACE && current_token.type != TOKEN_EOF) {
             ASTNode* statement = parse_statement();
             if_node->else_statements = realloc(if_node->else_statements, sizeof(ASTNode*) * (if_node->else_stmt_count + 1));
             if_node->else_statements[if_node->else_stmt_count] = statement;
             if_node->else_stmt_count++;
         }
         consume(TOKEN_RBRACE);
+        }
     }
     return (ASTNode*)node;
 }
