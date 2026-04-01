@@ -37,6 +37,11 @@ void jumpOffset(Chunk *chunk, int jumpIndex) {
     chunk->code[jumpIndex].operand = offset;
 }
 
+int emitLoop(Chunk *chunk, OpCode opcode, int loopStart) {
+    int offset = chunk->count - loopStart + 1;
+    return emitInstruction(chunk, opcode, -offset);
+}
+
 void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
     switch (node->type) {
     case AST_NUMBER: {
@@ -130,6 +135,19 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
         break;
     }
 
+    case AST_WHILE: {
+        ASTWhile *loop = (ASTWhile*)node;
+        int loopStart = chunk->count;
+        compileNode(loop->condition, chunk, table);
+        int jumpIfFalse = emitJump(chunk, OP_JUMP_IF_FALSE);
+        for(int i = 0; i < loop->while_stmt_count; i++) {
+            compileNode(loop->while_stmts[i], chunk, table);
+        }
+        int jumpBack = emitLoop(chunk, OP_JUMP, loopStart);
+        jumpOffset(chunk, jumpIfFalse);
+        break;
+    }
+    
     case AST_PRINT: {
         ASTPrint *print = (ASTPrint*)node;
         compileNode(print->exp, chunk, table);
