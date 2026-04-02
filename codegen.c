@@ -42,7 +42,7 @@ int emitLoop(Chunk *chunk, OpCode opcode, int loopStart) {
     return emitInstruction(chunk, opcode, -offset);
 }
 
-void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
+void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table, int *breakJump) {
     switch (node->type) {
     case AST_NUMBER: {
         ASTNumber *num = (ASTNumber*)node;
@@ -82,7 +82,7 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
 
     case AST_ASSIGNMENT: {
         ASTAssignment *assign = (ASTAssignment*)node;
-        compileNode(assign->exp, chunk, table);
+        compileNode(assign->exp, chunk, table, breakJump);
         int index = symbolTable_getIndex(table, assign->name);
         emitInstruction(chunk, OP_STORE, index);
         break; 
@@ -101,8 +101,8 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
 
     case AST_BINARYEXP: {
         ASTBinaryExp *bexp = (ASTBinaryExp*)node;
-        compileNode(bexp->left, chunk, table);
-        compileNode(bexp->right, chunk, table);
+        compileNode(bexp->left, chunk, table, breakJump);
+        compileNode(bexp->right, chunk, table, breakJump);
         switch(bexp->op) {
             case '+': emitInstruction(chunk, OP_ADD, 0); break;
             case '-': emitInstruction(chunk, OP_SUB, 0); break;
@@ -121,15 +121,15 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
     
     case AST_IF: {
         ASTIf *ifNode = (ASTIf*)node;
-        compileNode(ifNode->condition, chunk, table);
+        compileNode(ifNode->condition, chunk, table, breakJump);
         int jumpIfFalse = emitJump(chunk, OP_JUMP_IF_FALSE);
         for(int i = 0; i < ifNode->if_stmt_count; i++){
-            compileNode(ifNode->if_statements[i], chunk, table);
+            compileNode(ifNode->if_statements[i], chunk, table, breakJump);
         }
         int jumpToEnd = emitJump(chunk, OP_JUMP);
         jumpOffset(chunk, jumpIfFalse);
         for(int i = 0; i < ifNode->else_stmt_count; i++){
-            compileNode(ifNode->else_statements[i], chunk, table);
+            compileNode(ifNode->else_statements[i], chunk, table, breakJump);
         }
         jumpOffset(chunk, jumpToEnd);
         break;
@@ -138,19 +138,38 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
     case AST_WHILE: {
         ASTWhile *loop = (ASTWhile*)node;
         int loopStart = chunk->count;
-        compileNode(loop->condition, chunk, table);
+        int localBreak = -1;
+        compileNode(loop->condition, chunk, table, &localBreak);
         int jumpIfFalse = emitJump(chunk, OP_JUMP_IF_FALSE);
         for(int i = 0; i < loop->while_stmt_count; i++) {
-            compileNode(loop->while_stmts[i], chunk, table);
+            compileNode(loop->while_stmts[i], chunk, table, &localBreak);
         }
         int jumpBack = emitLoop(chunk, OP_JUMP, loopStart);
         jumpOffset(chunk, jumpIfFalse);
+        if(localBreak != -1) {
+            jumpOffset(chunk, localBreak);
+        }
         break;
     }
-    
+
+    case AST_BREAK: {
+        if (breakJump == NULL) {
+            printf("Error: break outside loop\n");
+            exit(1);
+        }
+
+        if (*breakJump != -1) {
+            printf("Error: only one break supported\n");
+            exit(1);
+        }
+
+        *breakJump = emitJump(chunk, OP_JUMP);
+        break;
+    }
+
     case AST_PRINT: {
         ASTPrint *print = (ASTPrint*)node;
-        compileNode(print->exp, chunk, table);
+        compileNode(print->exp, chunk, table, breakJump);
         emitInstruction(chunk, OP_PRINT, 0);
         break;
     }
@@ -158,7 +177,7 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
     case AST_PROGRAM: {
         ASTProgram *root = (ASTProgram*)node;
         for(int i = 0; i < root->smt_count; i++) {
-            compileNode(root->statements[i], chunk, table);
+            compileNode(root->statements[i], chunk, table, breakJump);
         }
         break;
     }
@@ -168,9 +187,10 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table) {
 
 //main compilation
 void compile(ASTNode *root, Chunk *chunk) {
+    int breakJump = -1;
     SymbolTable *table = symbolTable_create();
     initChunk(chunk);
-    compileNode(root, chunk, table);
+    compileNode(root, chunk, table, NULL);
     emitInstruction(chunk, OP_HALT, 0);
 }
 

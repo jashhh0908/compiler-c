@@ -1,9 +1,8 @@
 x = 5;
+print "entering loop";
 while (x > 0) {
     print x;
-    if(x == 1) {
-        print "Loop ending...";
-    }
-    x = x - 1;
+    break;
+    print 100;
 }
 print "Loop ended";
