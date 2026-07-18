@@ -1,8 +1,8 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "chunk.h"
-#include "ast.h"
-#include "symbol_table.h"
+#include "runtime/chunk.h"
+#include "syntax/ast.h"
+#include "compiler/symbol_table.h"
 
 char *opCodeName(Instruction code) {
     switch(code.opcode) {
@@ -144,7 +144,7 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table, int *breakJump
         for(int i = 0; i < loop->while_stmt_count; i++) {
             compileNode(loop->while_stmts[i], chunk, table, &localBreak);
         }
-        int jumpBack = emitLoop(chunk, OP_JUMP, loopStart);
+        emitLoop(chunk, OP_JUMP, loopStart);
         jumpOffset(chunk, jumpIfFalse);
         if(localBreak != -1) {
             jumpOffset(chunk, localBreak);
@@ -187,7 +187,6 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table, int *breakJump
 
 //main compilation
 void compile(ASTNode *root, Chunk *chunk) {
-    int breakJump = -1;
     SymbolTable *table = symbolTable_create();
     initChunk(chunk);
     compileNode(root, chunk, table, NULL);

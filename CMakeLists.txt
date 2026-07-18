@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(CompilerC C)
 
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 
 # Compile options for warnings and debugging
@@ -13,20 +13,19 @@ endif()
 
 # Source files (current flat structure)
 set(SOURCES
-    main.c
-    lexer.c
-    parser.c
-    ast.c
-    symbol_table.c
-    codegen.c
-    chunk.c
-    value.c
-    vm.c
-    evaluator.c
+    src/main.c
+    src/syntax/lexer.c
+    src/syntax/parser.c
+    src/syntax/ast.c
+    src/compiler/symbol_table.c
+    src/compiler/codegen.c
+    src/runtime/value.c
+    src/runtime/vm.c
+    src/runtime/chunk.c
 )
 
 # Add the executable target
 add_executable(compiler-c ${SOURCES})
 
 # Include headers from the current directory
-target_include_directories(compiler-c PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(compiler-c PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)

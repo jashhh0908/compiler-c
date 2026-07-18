@@ -1,7 +1,7 @@
 #ifndef EVALUATOR_H
 #define EVALUATOR_H
-#include "ast.h"
-#include "value.h"
+#include "syntax/ast.h"
+#include "runtime/value.h"
 
 typedef enum {
     EXEC_NORMAL,

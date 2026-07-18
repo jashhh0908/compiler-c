@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "lexer.h"
-#include "parser.h"
-#include "ast.h"
-#include "evaluator.h"
-#include "codegen.h"
-#include "vm.h"
+#include "syntax/lexer.h"
+#include "syntax/parser.h"
+#include "syntax/ast.h"
+#include "compiler/evaluator.h"
+#include "compiler/codegen.h"
+#include "runtime/vm.h"
 char *read_file() {
     FILE* file = fopen("tests/while_check.txt", "rb");
     if(!file) {

@@ -1,6 +1,6 @@
 #ifndef SYMBOL_TABLE_H
 #define SYMBOL_TABLE_H
-#include "value.h"
+#include "runtime/value.h"
 typedef struct SymbolTable SymbolTable;
 
 SymbolTable* symbolTable_create(void);

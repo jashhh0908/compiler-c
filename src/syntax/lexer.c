@@ -1,8 +1,8 @@
 #include<stdio.h>
-#include "lexer.h"
 #include<ctype.h>
 #include<string.h>
 #include<stdlib.h>
+#include "lexer.h"
 
 static const char *source;
 static int position;

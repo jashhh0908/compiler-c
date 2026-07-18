@@ -1,8 +1,8 @@
+#include<stdlib.h>
 #include<stdio.h>
 #include "lexer.h"
 #include "parser.h"
 #include "ast.h"
-#include<stdlib.h>
 
 ASTNode *parse_program();
 ASTNode *parse_statement();

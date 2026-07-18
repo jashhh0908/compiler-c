@@ -1,7 +1,8 @@
 #include<stdlib.h>
-#include "ast.h"
 #include<Stdio.h>
 #include<string.h>
+#include "ast.h"
+
 ASTNode* make_number(int x) {
     ASTNumber* node = malloc(sizeof(ASTNumber));
 
