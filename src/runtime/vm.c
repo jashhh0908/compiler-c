@@ -58,14 +58,24 @@ void run(VM *vm) {
             case OP_ADD: {
                 Value b = pop(vm);
                 Value a = pop(vm);
-                if (a.type != VALUE_INT || b.type != VALUE_INT) {
-                    printf("Runtime Error: ADD expects integers\n");
-                    return;
-                }
-
                 Value result;   
-                result = value_int(a.val + b.val);
-                push(vm, result);
+                if (a.type == VALUE_INT && b.type == VALUE_INT) {
+                    result.type = VALUE_INT;
+                    result = value_int(a.val + b.val);
+                    push(vm, result);
+                } else if(a.type == VALUE_STRING && b.type == VALUE_STRING) {
+                    int length = strlen(a.str) + strlen(b.str);
+                    char* concat_str = (char*)malloc(length);
+                    strcpy(concat_str, a.str);
+                    strcat(concat_str, b.str);
+
+                    result = value_string(concat_str);
+                    push(vm, result);
+                    free(concat_str);
+                } else {
+                    printf("Runtime Error: ADD expects either integers or strings\n");
+                    return;
+                }            
                 break;
             }
 
