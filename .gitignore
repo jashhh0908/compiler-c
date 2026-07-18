@@ -1,0 +1,27 @@
+# Build directories
+build/
+bin/
+out/
+
+# CMake artifacts
+CMakeCache.txt
+CMakeFiles/
+CMakeSettings.json
+cmake_install.cmake
+Makefile
+targets
+
+# Compiler/Linker outputs
+*.exe
+*.o
+*.obj
+*.pdb
+*.ilk
+*.a
+*.lib
+
+# Editor/OS settings
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
