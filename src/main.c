@@ -6,8 +6,8 @@
 #include "compiler/evaluator.h"
 #include "compiler/codegen.h"
 #include "runtime/vm.h"
-char *read_file() {
-    FILE* file = fopen("tests/while_check.txt", "rb");
+char *read_file(const char* filename) {
+    FILE* file = fopen(filename, "rb");
     if(!file) {
         printf("Could not open\n");
         return NULL;
@@ -23,9 +23,13 @@ char *read_file() {
 
     return buffer;
 }
-int main(void) {
-    const char *test = read_file();
-
+int main(int argc, char* argv[]) {
+    if(argc < 2) {
+        printf("Usage: compiler-c <filename>\n");
+        return 1;
+    }
+    const char *test = read_file(argv[1]);
+    if(!test) return 1;
     init_lexer(test);
     ASTNode* success = parse_program();
     if(success != NULL) {
