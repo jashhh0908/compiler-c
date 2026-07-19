@@ -4,6 +4,21 @@
 #include "syntax/ast.h"
 #include "compiler/symbol_table.h"
 
+typedef struct LoopState{ 
+    int localsAtLoopStart; //stores the amount of local variables that were present on the VM before loop began
+    int *breakJumps; //array to store instruction index of each break
+    int breakCount;
+    int breakCapacity; //used to manage memory of dynamic array *breakJumps 
+    struct LoopState *parent; //pointer to outer loop/scope
+} LoopState;
+
+typedef struct Compiler {
+    SymbolTable *currentScope;
+    LoopState *currentLoop;
+    int nextLocalSlot; //track next slot to assign incoming local variables
+    int globalCount; //track next slot for global variables
+} Compiler;
+
 char *opCodeName(Instruction code) {
     switch(code.opcode) {
         case OP_CONST: return "OP_CONST";

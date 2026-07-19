@@ -5,6 +5,10 @@ typedef enum {
     OP_CONST,          
     OP_POP,            
 
+    //for local variables
+    OP_LOAD_LOCAL, 
+    OP_STORE_LOCAL,
+
     OP_LOAD,           
     OP_STORE,          
 
