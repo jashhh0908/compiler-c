@@ -1,0 +1,4 @@
+if (1 == 1) {
+    inside = 42;
+}
+print inside;

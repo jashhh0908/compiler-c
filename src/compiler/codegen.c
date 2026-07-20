@@ -12,12 +12,12 @@ typedef struct LoopState{
     struct LoopState *parent; //pointer to outer loop/scope
 } LoopState;
 
-typedef struct Compiler {
+typedef struct CompileState {
     SymbolTable *currentScope;
     LoopState *currentLoop;
     int nextLocalSlot; //track next slot to assign incoming local variables
     int globalCount; //track next slot for global variables
-} Compiler;
+} CompileState;
 
 char *opCodeName(Instruction code) {
     switch(code.opcode) {
@@ -34,6 +34,8 @@ char *opCodeName(Instruction code) {
         case OP_NEQ: return "OP_NEQ";
         case OP_LOAD: return "OP_LOAD";
         case OP_STORE: return "OP_STORE";
+        case OP_LOAD_LOCAL: return "OP_LOAD_LOCAL";
+        case OP_STORE_LOCAL: return "OP_STORE_LOCAL";
         case OP_POP: return "OP_POP";    
         case OP_JUMP: return "OP_JUMP";
         case OP_JUMP_IF_FALSE: return "OP_JUMP_IF_FALSE";
@@ -57,7 +59,7 @@ int emitLoop(Chunk *chunk, OpCode opcode, int loopStart) {
     return emitInstruction(chunk, opcode, -offset);
 }
 
-void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table, int *breakJump) {
+void compileNode(ASTNode *node, Chunk *chunk, CompileState *compiler ) {
     switch (node->type) {
     case AST_NUMBER: {
         ASTNumber *num = (ASTNumber*)node;
@@ -97,27 +99,45 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table, int *breakJump
 
     case AST_ASSIGNMENT: {
         ASTAssignment *assign = (ASTAssignment*)node;
-        compileNode(assign->exp, chunk, table, breakJump);
-        int index = symbolTable_getIndex(table, assign->name);
-        emitInstruction(chunk, OP_STORE, index);
+        compileNode(assign->exp, chunk, compiler);
+
+        //find if the variable being assigned to has already been declared
+        Symbol *symbol = symbolTable_find(compiler->currentScope, assign->name);
+        
+        //variable already exists
+        if(symbol != NULL) {
+            if(symbol->type == SYMBOL_GLOBAL) emitInstruction(chunk, OP_STORE, symbol->slot);
+            if(symbol->type == SYMBOL_LOCAL) emitInstruction(chunk, OP_STORE_LOCAL, symbol->slot);
+        } else if (symbol == NULL){
+            //check if its a local variable
+            if(compiler->currentScope->depth > 0) {
+                int slot = compiler->nextLocalSlot++;
+                symbolTable_add(compiler->currentScope, assign->name, SYMBOL_LOCAL, slot);
+            } else if(compiler->currentScope->depth == 0) {
+                int slot = compiler->globalCount++;
+                symbolTable_add(compiler->currentScope, assign->name, SYMBOL_GLOBAL, slot);
+                emitInstruction(chunk, OP_STORE, slot);
+            }
+        }
         break; 
     }
 
     case AST_IDENTIFIER: {
         ASTIdentifier *idn = (ASTIdentifier*)node;
-        int index = symbolTable_find(table, idn->name);
-        if(index == -1) {
-            printf("Error: Undefined Variable %s\n", idn->name);
+        Symbol *symbol = symbolTable_find(compiler->currentScope, idn->name);
+        if(symbol == NULL) {
+            printf("Error: Undefined Variable '%s'\n", idn->name);
             exit(1);
         }
-        emitInstruction(chunk, OP_LOAD, index);
+        if(symbol->type == SYMBOL_GLOBAL) emitInstruction(chunk, OP_LOAD, symbol->slot);
+        if(symbol->type == SYMBOL_LOCAL) emitInstruction(chunk, OP_LOAD_LOCAL, symbol->slot);
         break;
     }
 
     case AST_BINARYEXP: {
         ASTBinaryExp *bexp = (ASTBinaryExp*)node;
-        compileNode(bexp->left, chunk, table, breakJump);
-        compileNode(bexp->right, chunk, table, breakJump);
+        compileNode(bexp->left, chunk, compiler);
+        compileNode(bexp->right, chunk, compiler);
         switch(bexp->op) {
             case '+': emitInstruction(chunk, OP_ADD, 0); break;
             case '-': emitInstruction(chunk, OP_SUB, 0); break;
@@ -136,15 +156,44 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table, int *breakJump
     
     case AST_IF: {
         ASTIf *ifNode = (ASTIf*)node;
-        compileNode(ifNode->condition, chunk, table, breakJump);
+        compileNode(ifNode->condition, chunk, compiler);
         int jumpIfFalse = emitJump(chunk, OP_JUMP_IF_FALSE);
+        //get current local slot
+        int ifSlot = compiler->nextLocalSlot;
+        //build a new scope for this if block with the parent as the currentScope
+        compiler->currentScope = symbolTable_create(compiler->currentScope, compiler->currentScope->depth + 1);
         for(int i = 0; i < ifNode->if_stmt_count; i++){
-            compileNode(ifNode->if_statements[i], chunk, table, breakJump);
+            compileNode(ifNode->if_statements[i], chunk, compiler);
         }
+        //after compiling all statements, pop all local variables of the if block
+        int ifLocalsToPop = compiler->nextLocalSlot - ifSlot;
+        for(int i = 0; i < ifLocalsToPop; i++) {
+            emitInstruction(chunk, OP_POP, 0);
+        }
+        compiler->nextLocalSlot = ifSlot;
+        //free the current scope once compiled
+        SymbolTable *ifScope = compiler->currentScope;
+        compiler->currentScope = ifScope->parent;
+        symbolTable_free(ifScope);
+
         int jumpToEnd = emitJump(chunk, OP_JUMP);
         jumpOffset(chunk, jumpIfFalse);
-        for(int i = 0; i < ifNode->else_stmt_count; i++){
-            compileNode(ifNode->else_statements[i], chunk, table, breakJump);
+
+        if(ifNode->else_stmt_count > 0) {
+            int elseSlot = compiler->nextLocalSlot;
+            compiler->currentScope = symbolTable_create(compiler->currentScope, compiler->currentScope->depth + 1);
+            for(int i = 0; i < ifNode->else_stmt_count; i++){
+                compileNode(ifNode->else_statements[i], chunk, compiler);
+            }
+            int elseLocalsToPop = compiler->nextLocalSlot - elseSlot;
+            for(int i = 0; i < elseLocalsToPop; i++) {
+                emitInstruction(chunk, OP_POP, 0);
+            }
+            compiler->nextLocalSlot = elseSlot;
+            //free the current scope once compiled
+            SymbolTable *elseScope = compiler->currentScope;
+            compiler->currentScope = elseScope->parent;
+            symbolTable_free(elseScope);
         }
         jumpOffset(chunk, jumpToEnd);
         break;
@@ -152,39 +201,67 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table, int *breakJump
 
     case AST_WHILE: {
         ASTWhile *loop = (ASTWhile*)node;
-        int loopStart = chunk->count;
-        int localBreak = -1;
-        compileNode(loop->condition, chunk, table, &localBreak);
+        LoopState loopState;
+        loopState.localsAtLoopStart = compiler->nextLocalSlot;
+        loopState.breakJumps = NULL;
+        loopState.breakCount = 0;
+        loopState.breakCapacity = 0;
+        loopState.parent = compiler->currentLoop;
+        compiler->currentLoop = &loopState;
+
+        int loopStart = chunk->count;       
+        compileNode(loop->condition, chunk, compiler);
         int jumpIfFalse = emitJump(chunk, OP_JUMP_IF_FALSE);
+        int whileSlot = compiler->nextLocalSlot;
+        compiler->currentScope = symbolTable_create(compiler->currentScope, compiler->currentScope->depth + 1);
         for(int i = 0; i < loop->while_stmt_count; i++) {
-            compileNode(loop->while_stmts[i], chunk, table, &localBreak);
+            compileNode(loop->while_stmts[i], chunk, compiler);
         }
+        int whileLocalsToPop = compiler->nextLocalSlot - whileSlot;
+        for(int i = 0; i < whileLocalsToPop; i++) {
+            emitInstruction(chunk, OP_POP, 0);
+        }
+        compiler->nextLocalSlot = whileSlot;
+        //free the current scope once compiled
+        SymbolTable *whileScope = compiler->currentScope;
+        compiler->currentScope = whileScope->parent;
+        symbolTable_free(whileScope);
         emitLoop(chunk, OP_JUMP, loopStart);
         jumpOffset(chunk, jumpIfFalse);
-        if(localBreak != -1) {
-            jumpOffset(chunk, localBreak);
+        for(int i = 0; i < loopState.breakCount; i++) {
+            jumpOffset(chunk, loopState.breakJumps[i]);
         }
+        free(loopState.breakJumps);
+        compiler->currentLoop = loopState.parent;
         break;
     }
 
     case AST_BREAK: {
-        if (breakJump == NULL) {
+         if (compiler->currentLoop == NULL) {
             printf("Error: break outside loop\n");
             exit(1);
         }
-
-        if (*breakJump != -1) {
-            printf("Error: only one break supported\n");
-            exit(1);
+        // Pop all local variables created since the loop started
+        int localsToPop = compiler->nextLocalSlot - compiler->currentLoop->localsAtLoopStart;
+        for (int i = 0; i < localsToPop; i++) {
+            emitInstruction(chunk, OP_POP, 0);
         }
-
-        *breakJump = emitJump(chunk, OP_JUMP);
+        // Emit the forward jump instruction
+        int breakJump = emitJump(chunk, OP_JUMP);
+        // Append breakJump index to the active loop's dynamic array
+        LoopState *currentLoop = compiler->currentLoop;
+        if (currentLoop->breakCount >= currentLoop->breakCapacity) {
+            int newCapacity = currentLoop->breakCapacity == 0 ? 8 : currentLoop->breakCapacity * 2;
+            currentLoop->breakJumps = realloc(currentLoop->breakJumps, sizeof(int) * newCapacity);
+            currentLoop->breakCapacity = newCapacity;
+        }
+        currentLoop->breakJumps[currentLoop->breakCount++] = breakJump;
         break;
     }
 
     case AST_PRINT: {
         ASTPrint *print = (ASTPrint*)node;
-        compileNode(print->exp, chunk, table, breakJump);
+        compileNode(print->exp, chunk, compiler);
         emitInstruction(chunk, OP_PRINT, 0);
         break;
     }
@@ -192,7 +269,7 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table, int *breakJump
     case AST_PROGRAM: {
         ASTProgram *root = (ASTProgram*)node;
         for(int i = 0; i < root->smt_count; i++) {
-            compileNode(root->statements[i], chunk, table, breakJump);
+            compileNode(root->statements[i], chunk, compiler);
         }
         break;
     }
@@ -200,11 +277,18 @@ void compileNode(ASTNode *node, Chunk *chunk, SymbolTable *table, int *breakJump
     }
 }
 
+void initCompileState(CompileState *compiler) {
+    compiler->currentScope = symbolTable_create(NULL, 0);
+    compiler->currentLoop = NULL;
+    compiler->globalCount = 0;
+    compiler->nextLocalSlot = 0;
+}
 //main compilation
 void compile(ASTNode *root, Chunk *chunk) {
-    SymbolTable *table = symbolTable_create();
+    CompileState compiler;
+    initCompileState(&compiler);
     initChunk(chunk);
-    compileNode(root, chunk, table, NULL);
+    compileNode(root, chunk, &compiler);
     emitInstruction(chunk, OP_HALT, 0);
 }
 
