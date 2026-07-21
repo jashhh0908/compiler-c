@@ -94,3 +94,10 @@ ASTNode *make_while(ASTNode *condition) {
     return (ASTNode*)node;
 }
 
+ASTNode *make_block(void) {
+    ASTBlock *block = malloc(sizeof(ASTBlock));
+    block->type = AST_BLOCK;
+    block->statements = NULL;
+    block->smt_count = 0;
+    return (ASTNode*)block;
+}

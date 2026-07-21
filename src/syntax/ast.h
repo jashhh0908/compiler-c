@@ -12,7 +12,8 @@ typedef enum {
     AST_BINARYEXP,
     AST_IDENTIFIER,
     AST_NUMBER,  
-    AST_BOOL,  
+    AST_BOOL, 
+    AST_BLOCK 
 } ASTNodeType;
 
 typedef struct {
@@ -82,6 +83,12 @@ typedef struct {
     int bool_value;
 } ASTBool;
 
+typedef struct {
+    ASTNodeType type;
+    ASTNode **statements;
+    int smt_count;
+} ASTBlock;
+
 ASTNode *make_number(int x);
 ASTNode *make_identifier(char *name);
 ASTNode *make_binaryexp(char op, ASTNode* left, ASTNode* right);
@@ -91,6 +98,7 @@ ASTNode *make_string(char *str);
 ASTNode *make_bool(int x);
 ASTNode *make_if(ASTNode *condition);
 ASTNode *make_while(ASTNode *condition);
+ASTNode *make_block(void);
 
 //for testing purpose
 void print_ast(ASTNode* node, int level);

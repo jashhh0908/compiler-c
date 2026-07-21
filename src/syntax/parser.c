@@ -17,7 +17,7 @@ ASTNode *parse_term();
 ASTNode *parse_factor();
 ASTNode *parse_logical_AND();
 ASTNode *parse_logical_OR();
-
+ASTNode *parse_block();
 
 Token current_token;
 static const char *token_name(TokenType type) {
@@ -73,7 +73,7 @@ void consume(TokenType expected) {
     }
 }
 
-ASTNode* parse_factor() {
+ASTNode *parse_factor() {
     if(current_token.type == TOKEN_IDENTIFIER) {
         char *name = current_token.lexeme;
         advance();
@@ -107,7 +107,7 @@ ASTNode* parse_factor() {
     }
 }
 
-ASTNode* parse_term() {
+ASTNode *parse_term() {
     ASTNode *left = parse_factor();
     while(current_token.type == TOKEN_STAR || current_token.type == TOKEN_SLASH) {
         char op;
@@ -124,7 +124,7 @@ ASTNode* parse_term() {
     return left;
 }
 
-ASTNode* parse_expression() {
+ASTNode *parse_expression() {
     ASTNode *left = parse_term();
     while(current_token.type == TOKEN_PLUS || current_token.type == TOKEN_MINUS) {
         char op;
@@ -140,7 +140,7 @@ ASTNode* parse_expression() {
     return left;
 }
 
-ASTNode* parse_comparison() {
+ASTNode *parse_comparison() {
     ASTNode *left = parse_expression();
     while(current_token.type == TOKEN_EQ || current_token.type == TOKEN_NEQ ||
           current_token.type == TOKEN_LT || current_token.type == TOKEN_LTE ||
@@ -182,7 +182,7 @@ ASTNode *parse_logical_OR() {
     return left;
 }
 
-ASTNode* parse_print_smt() {
+ASTNode *parse_print_smt() {
     char *print_lexeme = current_token.lexeme;
     consume(TOKEN_PRINT);
     free(print_lexeme);
@@ -229,7 +229,7 @@ ASTNode *parse_break() {
     return node;
 }
 
-ASTNode* parse_if_smt() {
+ASTNode *parse_if_smt() {
     char *if_lexeme = current_token.lexeme;
     consume(TOKEN_IF);
     free(if_lexeme);
@@ -270,7 +270,7 @@ ASTNode* parse_if_smt() {
     return (ASTNode*)node;
 }
 
-ASTNode* parse_assignment() {
+ASTNode *parse_assignment() {
     char *name = current_token.lexeme;
     consume(TOKEN_IDENTIFIER);
     consume(TOKEN_ASSIGN);
@@ -283,7 +283,7 @@ ASTNode* parse_assignment() {
     return node;
 }
 
-ASTNode* parse_statement() {
+ASTNode *parse_statement() {
     if(current_token.type == TOKEN_PRINT) {
         return parse_print_smt();    
     } else if(current_token.type == TOKEN_IDENTIFIER) {
@@ -294,13 +294,15 @@ ASTNode* parse_statement() {
         return parse_while_smt();
     } else if(current_token.type == TOKEN_BREAK) {
         return parse_break();
+    } else if(current_token.type == TOKEN_LBRACE) {
+        return parse_block();
     } else {
         syntax_error(current_token.type, "statement (print or assignment or if)");
         return NULL;
     }
 }
 
-ASTNode* parse_program() {
+ASTNode *parse_program() {
     ASTProgram* node = malloc(sizeof(ASTProgram));
     node->type = AST_PROGRAM;
     node->statements = NULL;
@@ -313,6 +315,24 @@ ASTNode* parse_program() {
         node->smt_count++;
     }
     return (ASTNode*)node;
+}
+
+ASTNode *parse_block() {
+    consume(TOKEN_LBRACE);
+    ASTNode *node = make_block();
+    ASTBlock *block = (ASTBlock*)node;
+    while(current_token.type != TOKEN_RBRACE && current_token.type != TOKEN_EOF) {
+        ASTNode *statement = parse_statement();
+        block->statements = realloc(block->statements, sizeof(ASTNode*) * (block->smt_count + 1));
+        block->statements[block->smt_count] = statement;
+        block->smt_count++;
+    }
+    if(current_token.type == TOKEN_EOF) {
+        printf("Unterminated block");
+        exit(1);
+    }
+    consume(TOKEN_RBRACE);
+    return (ASTNode*)block;
 }
 
 //for testing purpose

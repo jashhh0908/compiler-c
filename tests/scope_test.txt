@@ -1,30 +1,13 @@
 g = 100;
+print g;
 
-if (g > 50) {
-    ifLocal = 10;
-    print ifLocal;
-} else {
-    elseLocal = 999;
-    print elseLocal;
-}
+{
+    x = 10;
+    print x;
 
-i = 3;
-while (i > 0) {
-    loopLocal = i * 10;
-    print loopLocal;
-    
-    if (i == 2) {
-        break;
-    }
-    i = i - 1;
-}
-
-a = 1;
-if (a == 1) {
-    b = 2;
-    if (b == 2) {
-        c = 3;
-        print a + b + c;
+    {
+        y = 20;
+        print x + y;
     }
 }
 

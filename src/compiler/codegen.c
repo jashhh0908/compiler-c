@@ -266,6 +266,23 @@ void compileNode(ASTNode *node, Chunk *chunk, CompileState *compiler ) {
         break;
     }
 
+    case AST_BLOCK: {
+        int blockSlot = compiler->nextLocalSlot;
+        compiler->currentScope = symbolTable_create(compiler->currentScope, compiler->currentScope->depth + 1);
+        ASTBlock *block = (ASTBlock*)node;
+        for(int i = 0; i < block->smt_count; i++) {
+            compileNode(block->statements[i], chunk, compiler);
+        }
+        int blockLocalsToPop = compiler->nextLocalSlot - blockSlot;
+        for(int i = 0; i < blockLocalsToPop; i++) {
+            emitInstruction(chunk, OP_POP, 0);
+        }
+        compiler->nextLocalSlot = blockSlot;
+        SymbolTable *blockScope = compiler->currentScope;
+        compiler->currentScope = blockScope->parent;
+        symbolTable_free(blockScope);
+        break;
+    }
     case AST_PROGRAM: {
         ASTProgram *root = (ASTProgram*)node;
         for(int i = 0; i < root->smt_count; i++) {
