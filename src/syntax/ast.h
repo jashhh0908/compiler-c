@@ -8,6 +8,7 @@ typedef enum {
     AST_IF,
     AST_WHILE,
     AST_BREAK,
+    AST_CONTINUE,
     AST_STRING,
     AST_BINARYEXP,
     AST_IDENTIFIER,

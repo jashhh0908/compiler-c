@@ -5,6 +5,7 @@
 #include "compiler/symbol_table.h"
 
 typedef struct LoopState{ 
+    int loopStart; //store starting point of the loop
     int localsAtLoopStart; //stores the amount of local variables that were present on the VM before loop began
     int *breakJumps; //array to store instruction index of each break
     int breakCount;
@@ -201,7 +202,10 @@ void compileNode(ASTNode *node, Chunk *chunk, CompileState *compiler ) {
 
     case AST_WHILE: {
         ASTWhile *loop = (ASTWhile*)node;
+        int loopStart = chunk->count;       
+
         LoopState loopState;
+        loopState.loopStart = loopStart;
         loopState.localsAtLoopStart = compiler->nextLocalSlot;
         loopState.breakJumps = NULL;
         loopState.breakCount = 0;
@@ -209,7 +213,6 @@ void compileNode(ASTNode *node, Chunk *chunk, CompileState *compiler ) {
         loopState.parent = compiler->currentLoop;
         compiler->currentLoop = &loopState;
 
-        int loopStart = chunk->count;       
         compileNode(loop->condition, chunk, compiler);
         int jumpIfFalse = emitJump(chunk, OP_JUMP_IF_FALSE);
         int whileSlot = compiler->nextLocalSlot;
@@ -237,7 +240,7 @@ void compileNode(ASTNode *node, Chunk *chunk, CompileState *compiler ) {
     }
 
     case AST_BREAK: {
-         if (compiler->currentLoop == NULL) {
+        if (compiler->currentLoop == NULL) {
             printf("Error: break outside loop\n");
             exit(1);
         }
@@ -256,6 +259,19 @@ void compileNode(ASTNode *node, Chunk *chunk, CompileState *compiler ) {
             currentLoop->breakCapacity = newCapacity;
         }
         currentLoop->breakJumps[currentLoop->breakCount++] = breakJump;
+        break;
+    }
+
+    case AST_CONTINUE: {
+        if (compiler->currentLoop == NULL) {
+            printf("Error: break outside loop\n");
+            exit(1);
+        }
+        int localsToPop = compiler->nextLocalSlot - compiler->currentLoop->localsAtLoopStart;
+        for (int i = 0; i < localsToPop; i++) {
+            emitInstruction(chunk, OP_POP, 0);
+        }
+        emitLoop(chunk, OP_JUMP, compiler->currentLoop->loopStart);
         break;
     }
 
@@ -283,6 +299,7 @@ void compileNode(ASTNode *node, Chunk *chunk, CompileState *compiler ) {
         symbolTable_free(blockScope);
         break;
     }
+    
     case AST_PROGRAM: {
         ASTProgram *root = (ASTProgram*)node;
         for(int i = 0; i < root->smt_count; i++) {

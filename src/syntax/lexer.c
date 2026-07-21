@@ -58,6 +58,8 @@ static Token get_identifier() {
         token.type = TOKEN_WHILE;
     } else if(strcmp(text, "break") == 0) {
         token.type = TOKEN_BREAK;
+    } else if(strcmp(text, "continue") == 0) {
+        token.type = TOKEN_CONTINUE; 
     } else {
         token.type = TOKEN_IDENTIFIER;
     }

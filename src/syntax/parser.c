@@ -11,6 +11,7 @@ ASTNode *parse_print_smt();
 ASTNode *parse_if_smt();
 ASTNode *parse_while_smt();
 ASTNode *parse_break();
+ASTNode *parse_continue();
 ASTNode *parse_expression();
 ASTNode *parse_comparison();
 ASTNode *parse_term();
@@ -229,6 +230,14 @@ ASTNode *parse_break() {
     return node;
 }
 
+ASTNode *parse_continue() {
+    consume(TOKEN_CONTINUE);
+    ASTNode *node = malloc(sizeof(ASTNode));
+    node->type = AST_CONTINUE;
+    consume(TOKEN_SEMICOLON);
+    return node;
+}
+
 ASTNode *parse_if_smt() {
     char *if_lexeme = current_token.lexeme;
     consume(TOKEN_IF);
@@ -296,6 +305,8 @@ ASTNode *parse_statement() {
         return parse_break();
     } else if(current_token.type == TOKEN_LBRACE) {
         return parse_block();
+    } else if(current_token.type == TOKEN_CONTINUE) {
+        return parse_continue();
     } else {
         syntax_error(current_token.type, "statement (print or assignment or if)");
         return NULL;
