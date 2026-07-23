@@ -1,14 +1,9 @@
-g = 100;
-print g;
+var x = 10;
+print x;
 
-{
-    x = 10;
+if (true) {
+    var x = 20; 
     print x;
-
-    {
-        y = 20;
-        print x + y;
-    }
 }
 
-print g;
+print x; 

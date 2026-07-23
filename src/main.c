@@ -34,8 +34,8 @@ int main(int argc, char* argv[]) {
     ASTNode* success = parse_program();
     if(success != NULL) {
         printf("Parsed successfully!\n");
-        //print_ast(success, 0);
-        //debug_compile(success);
+        // print_ast(success, 0);
+        // debug_compile(success);
         Chunk chunk;
         compile(success, &chunk);
         VM vm;

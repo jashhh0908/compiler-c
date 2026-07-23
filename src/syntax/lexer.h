@@ -7,6 +7,7 @@ typedef enum {
     TOKEN_IDENTIFIER,
     TOKEN_NUMBER,
 
+    TOKEN_VAR,
     TOKEN_ASSIGN,
     TOKEN_AND,
     TOKEN_OR,

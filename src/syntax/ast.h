@@ -3,6 +3,7 @@
 
 typedef enum {
     AST_PROGRAM,
+    AST_VAR_DECL,
     AST_ASSIGNMENT,
     AST_PRINT,
     AST_IF,
@@ -26,6 +27,12 @@ typedef struct {
     ASTNode **statements;
     int smt_count;
 } ASTProgram;
+
+typedef struct {
+    ASTNodeType type;
+    char *name;
+    ASTNode *initializer;
+} ASTVar;
 
 typedef struct {
     ASTNodeType type;
@@ -94,6 +101,7 @@ ASTNode *make_number(int x);
 ASTNode *make_identifier(char *name);
 ASTNode *make_binaryexp(char op, ASTNode* left, ASTNode* right);
 ASTNode *make_print_smt(ASTNode* exp);
+ASTNode *make_var(char *name, ASTNode *intializer);
 ASTNode *make_assignment(char *name, ASTNode* exp);
 ASTNode *make_string(char *str);
 ASTNode *make_bool(int x);

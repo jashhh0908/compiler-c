@@ -6,6 +6,7 @@
 
 ASTNode *parse_program();
 ASTNode *parse_statement();
+ASTNode *parse_var_decl();
 ASTNode *parse_assignment();
 ASTNode *parse_print_smt();
 ASTNode *parse_if_smt();
@@ -39,6 +40,7 @@ static const char *token_name(TokenType type) {
 
         case TOKEN_AND: return "&&";
         case TOKEN_OR: return "||";
+        case TOKEN_VAR: return "VAR";
         case TOKEN_ASSIGN: return "ASSIGN";
         case TOKEN_PLUS: return "PLUS";
         case TOKEN_MINUS: return "MINUS";
@@ -279,6 +281,21 @@ ASTNode *parse_if_smt() {
     return (ASTNode*)node;
 }
 
+ASTNode *parse_var_decl() {
+    consume(TOKEN_VAR);
+    char *name = current_token.lexeme;
+    consume(TOKEN_IDENTIFIER);
+    ASTNode *initalizer = NULL;
+    if(current_token.type == TOKEN_ASSIGN) {
+        consume(TOKEN_ASSIGN);
+        initalizer = parse_logical_OR();
+    }
+    consume(TOKEN_SEMICOLON);
+    ASTNode *node = make_var(name, initalizer);
+    free(name);
+    return node;
+}
+
 ASTNode *parse_assignment() {
     char *name = current_token.lexeme;
     consume(TOKEN_IDENTIFIER);
@@ -307,6 +324,8 @@ ASTNode *parse_statement() {
         return parse_block();
     } else if(current_token.type == TOKEN_CONTINUE) {
         return parse_continue();
+    } else if(current_token.type == TOKEN_VAR) {
+        return parse_var_decl();
     } else {
         syntax_error(current_token.type, "statement (print or assignment or if)");
         return NULL;

@@ -3,7 +3,7 @@
 #include<string.h>
 #include "ast.h"
 
-ASTNode* make_number(int x) {
+ASTNode *make_number(int x) {
     ASTNumber* node = malloc(sizeof(ASTNumber));
 
     node->type = AST_NUMBER;
@@ -12,7 +12,7 @@ ASTNode* make_number(int x) {
     return (ASTNode*)node;
 }
 
-ASTNode* make_identifier(char *name) {
+ASTNode *make_identifier(char *name) {
     ASTIdentifier* node = malloc(sizeof(ASTIdentifier));
 
     node->type = AST_IDENTIFIER;
@@ -22,7 +22,7 @@ ASTNode* make_identifier(char *name) {
     return (ASTNode*)node;
 }
 
-ASTNode* make_binaryexp(char op, ASTNode* left, ASTNode *right) {
+ASTNode *make_binaryexp(char op, ASTNode* left, ASTNode *right) {
     ASTBinaryExp* node = malloc(sizeof(ASTBinaryExp));
 
     node->type = AST_BINARYEXP;
@@ -33,7 +33,7 @@ ASTNode* make_binaryexp(char op, ASTNode* left, ASTNode *right) {
     return (ASTNode*)node;
 }
 
-ASTNode* make_print_smt(ASTNode* exp) {
+ASTNode *make_print_smt(ASTNode* exp) {
     ASTPrint* node = malloc(sizeof(ASTPrint));
 
     node->type = AST_PRINT;
@@ -42,7 +42,16 @@ ASTNode* make_print_smt(ASTNode* exp) {
     return (ASTNode*)node;
 }
 
-ASTNode* make_assignment(char *name, ASTNode* exp) {
+ASTNode *make_var(char *name, ASTNode *initializer) {
+    ASTVar *node = malloc(sizeof(ASTVar));
+    node->type = AST_VAR_DECL;
+    node->name = malloc(strlen(name) + 1);
+    strcpy(node->name, name);
+    node->initializer = initializer;
+    return (ASTNode*)node;
+}
+
+ASTNode *make_assignment(char *name, ASTNode* exp) {
     ASTAssignment* node = malloc(sizeof(ASTAssignment));
 
     node->type = AST_ASSIGNMENT;
@@ -53,7 +62,7 @@ ASTNode* make_assignment(char *name, ASTNode* exp) {
     return (ASTNode*)node;
 }
 
-ASTNode* make_string(char *str) {
+ASTNode *make_string(char *str) {
     ASTString *node = malloc(sizeof(ASTString));
 
     node->type = AST_STRING;
@@ -63,7 +72,7 @@ ASTNode* make_string(char *str) {
     return (ASTNode*)node;
 }
 
-ASTNode* make_bool(int x) {
+ASTNode *make_bool(int x) {
     ASTBool *node = malloc(sizeof(ASTBool));
 
     node->type = AST_BOOL;

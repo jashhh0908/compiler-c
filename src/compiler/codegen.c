@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
 #include "runtime/chunk.h"
 #include "syntax/ast.h"
 #include "compiler/symbol_table.h"
@@ -98,6 +99,36 @@ void compileNode(ASTNode *node, Chunk *chunk, CompileState *compiler ) {
         break;
     }
 
+    case AST_VAR_DECL: {
+        ASTVar *var = (ASTVar*)node;
+        Symbol *temp = compiler->currentScope->head;
+        //check for redeclaration
+        while(temp != NULL) {
+            if(strcmp(temp->name, var->name) == 0) {
+                printf("Error: Redeclaration of variable '%s'", var->name);
+                exit(1);
+            }
+            temp = temp->next;
+        }
+        //check if assignment or declaration
+        if(var->initializer != NULL) {
+            compileNode(var->initializer, chunk, compiler);
+        } else {
+            Value v = value_int(0);
+            int index = addConstant(v, chunk);
+            emitInstruction(chunk, OP_CONST, index);
+        }
+        if(compiler->currentScope->depth > 0) {
+            int slot = compiler->nextLocalSlot++;
+            symbolTable_add(compiler->currentScope, var->name, SYMBOL_LOCAL, slot);
+        } else if(compiler->currentScope->depth == 0) {
+            int slot = compiler->globalCount++;
+            symbolTable_add(compiler->currentScope, var->name, SYMBOL_GLOBAL, slot);
+            emitInstruction(chunk, OP_STORE, slot);
+        }
+        break;
+    }
+
     case AST_ASSIGNMENT: {
         ASTAssignment *assign = (ASTAssignment*)node;
         compileNode(assign->exp, chunk, compiler);
@@ -110,15 +141,8 @@ void compileNode(ASTNode *node, Chunk *chunk, CompileState *compiler ) {
             if(symbol->type == SYMBOL_GLOBAL) emitInstruction(chunk, OP_STORE, symbol->slot);
             if(symbol->type == SYMBOL_LOCAL) emitInstruction(chunk, OP_STORE_LOCAL, symbol->slot);
         } else if (symbol == NULL){
-            //check if its a local variable
-            if(compiler->currentScope->depth > 0) {
-                int slot = compiler->nextLocalSlot++;
-                symbolTable_add(compiler->currentScope, assign->name, SYMBOL_LOCAL, slot);
-            } else if(compiler->currentScope->depth == 0) {
-                int slot = compiler->globalCount++;
-                symbolTable_add(compiler->currentScope, assign->name, SYMBOL_GLOBAL, slot);
-                emitInstruction(chunk, OP_STORE, slot);
-            }
+            printf("Error: undefined variable '%s'", assign->name);
+            exit(1);
         }
         break; 
     }
